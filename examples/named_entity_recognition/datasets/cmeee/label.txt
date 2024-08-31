@@ -1,0 +1,9 @@
+dis
+sym
+pro
+equ
+dru
+ite
+bod
+dep
+mic

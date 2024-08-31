@@ -1,0 +1,43 @@
+# 任务名称
+task_name: bert-cnn-ner
+# 模型路径
+model_name_or_path: /data/checkpoints/bert/chinese-roberta-wwm-ext
+# 保存路径
+output_dir: outputs/bert-cnn-ner
+
+# 启动训练
+do_train: true
+
+# 数据集路径
+dataset_dir: examples/named_entity_recognition/datasets/cmeee
+# 训练集
+train_file: train.json
+# 验证集
+validation_file: dev.json
+preprocessing_num_workers: 16
+
+# 训练轮次
+num_train_epochs: 10
+# 训练时批大小
+per_device_train_batch_size: 8
+# 验证时批大小
+per_device_eval_batch_size: 8
+# 基座模型学习率
+learning_rate: 0.00002
+# 适配层学习率
+differential_learning_rate: 0.002
+
+# 打印间隔
+logging_steps: 100
+# 评估间隔
+evaluation_strategy: epoch
+# 保存间隔
+save_strategy: epoch
+# 评估指标
+metric_for_best_model: eval_f1
+# 加载最优模型
+load_best_model_at_end: true
+# 最多保存模型数量
+save_total_limit: 3
+# 日志上传方式
+report_to: none
