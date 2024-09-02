@@ -84,6 +84,13 @@ model = AutoModel.from_pretrained("path_to_model", trust_remote_code=True)
 print(model.predict(tokenizer, "因肺过度充气，常将肝脏推向下方。"))
 ```
 
+一键启动模型接口或DEMO
+
+```shell
+# fastie-cli api --model_name_or_path path_to_model --port 9000
+fastie-cli demo --model_name_or_path path_to_model --port 9000
+```
+
 
 ## 致谢
 
