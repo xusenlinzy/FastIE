@@ -9,7 +9,7 @@ output_dir: outputs/bert-span-ner
 do_train: true
 
 # 数据集路径
-dataset_dir: examples/named_entity_recognition/datasets/cmeee
+dataset_dir: datasets/cmeee
 # 训练集
 train_file: train.json
 # 验证集
@@ -38,6 +38,6 @@ metric_for_best_model: eval_f1
 # 加载最优模型
 load_best_model_at_end: true
 # 最多保存模型数量
-save_total_limit: 3
+save_total_limit: 2
 # 日志上传方式
 report_to: none

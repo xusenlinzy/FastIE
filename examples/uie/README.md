@@ -1,5 +1,13 @@
 ## UIE
 
+## 模型下载
+
+```python
+from fastie.models.uie.convert import convert_uie_checkpoint
+
+convert_uie_checkpoint("uie-base", "uie_base_pytorch")
+```
+
 ### 数据标注
 
 我们推荐使用数据标注平台 `doccano` 进行数据标注，本示例也打通了从标注到训练的通道，即 `doccano` 导出数据后可通过 `doccano.py` 脚本轻松将数据转换为输入模型时需要的形式，实现无缝衔接。

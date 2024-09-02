@@ -9,7 +9,7 @@ output_dir: outputs/bert-grte-relation
 do_train: true
 
 # 数据集路径
-dataset_dir: examples/relation_extraction/datasets/duie
+dataset_dir: datasets/duie
 # 训练集
 train_file: train.json
 # 验证集

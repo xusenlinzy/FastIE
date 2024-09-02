@@ -1,7 +1,7 @@
 # 任务名称
 task_name: uie
 # 模型路径
-model_name_or_path: /data/checkpoints/bert/chinese-roberta-wwm-ext
+model_name_or_path: /data/checkpoints/bert/uie-base-pytorch
 # 保存路径
 output_dir: outputs/uie
 
@@ -9,7 +9,7 @@ output_dir: outputs/uie
 do_train: true
 
 # 数据集路径
-dataset_dir: examples/uie/datasets/DuIE
+dataset_dir: datasets/DuIE
 # 训练集
 train_file: train.json
 # 验证集

@@ -9,7 +9,7 @@ output_dir: outputs/bert-gplinker-event
 do_train: true
 
 # 数据集路径
-dataset_dir: examples/event_extraction/datasets/duee
+dataset_dir: datasets/duee
 # schema文件路径
 schema_file: examples/event_extraction/datasets/duee/schema.json
 # 训练集
