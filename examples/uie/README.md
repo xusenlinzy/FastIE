@@ -66,5 +66,5 @@ python examples/uie/doccano.py \
 ### 模型微调
 
 ```shell
-python -m fastie.cli uie.yaml
+fastie-cli train uie.yaml
 ```

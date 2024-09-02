@@ -5,28 +5,21 @@ description = "Easy-to-use Information Extraction Framework"
 authors = ["15797687258@163.com"]
 readme = "README.md"
 
-[tool.poetry.dependencies]
-python = ">=3.7,<4.0"
-datasets = ">=2.21.0"
-transformers = ">=4.44.2"
-
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
-
 
 [tool.ruff]
 target-version = "py38"
 line-length = 119
 indent-width = 4
 
+
 [tool.ruff.lint]
 ignore = ["C408", "C901", "E501", "E731", "E741", "W605"]
 select = ["C", "E", "F", "I", "W"]
 
+
 [tool.ruff.lint.isort]
 lines-after-imports = 2
+
 
 [tool.ruff.format]
 quote-style = "double"

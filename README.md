@@ -1,3 +1,5 @@
+# FastIE
+
 <p align="center">
     <a href="https://github.com/xusenlinzy/fastie"><img src="https://img.shields.io/github/license/xusenlinzy/fastie"></a>
     <a href=""><img src="https://img.shields.io/badge/python-3.8+-aff.svg"></a>

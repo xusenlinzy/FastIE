@@ -1,13 +1,16 @@
 import os
 from collections import OrderedDict
-from typing import Any, TYPE_CHECKING
-
-import transformers
-from transformers import (
-    set_seed,
-    default_data_collator,
+from typing import (
+    Any,
+    TYPE_CHECKING,
+    Optional,
+    List,
+    Dict,
 )
 
+from transformers import default_data_collator
+
+from .callbacks import LogCallback
 from .trainer import (
     ExtractionTrainer,
     UIETrainer,
@@ -22,6 +25,7 @@ from ..data import (
     load_cls_train_dev_dataset,
 )
 from ..extras import get_logger
+from ..hparams.parser import get_train_args
 from ..models.event_extraction import (
     load_event_tokenizer,
     load_event_model,
@@ -50,6 +54,7 @@ if TYPE_CHECKING:
         ModelArguments,
         FinetuneArguments,
     )
+    from transformers import TrainerCallback
 
 os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = 'true'
 
@@ -96,27 +101,10 @@ def run_task(
     data_args: "DataArguments",
     model_args: "ModelArguments",
     finetune_args: "FinetuneArguments",
-    **model_config_kwargs: Any
+    callbacks: Optional[List["TrainerCallback"]] = [],
+    **model_config_kwargs: Any,
 ):
-    if finetune_args.should_log:
-        # The default of training_args.log_level is passive, so we set log level at info here to have that default.
-        transformers.utils.logging.set_verbosity_info()
-
-    log_level = finetune_args.get_process_log_level()
-    logger.setLevel(log_level)
-    transformers.utils.logging.set_verbosity(log_level)
-    transformers.utils.logging.enable_default_handler()
-    transformers.utils.logging.enable_explicit_format()
-
-    # Log on each process the small summary:
-    logger.warning(
-        f"Process rank: {finetune_args.local_rank}, device: {finetune_args.device}, n_gpu: {finetune_args.n_gpu}, "
-        + f"distributed training: {finetune_args.parallel_mode.value == 'distributed'}, 16-bits training: {finetune_args.fp16}"
-    )
-    logger.info(f"Training/evaluation parameters {finetune_args}")
-
-    # Set seed before initializing model.
-    set_seed(finetune_args.seed)
+    callbacks.append(LogCallback())
 
     task_name = data_args.task_name
     try:
@@ -181,6 +169,7 @@ def run_task(
         eval_dataset=eval_dataset,
         tokenizer=tokenizer,
         data_collator=data_collator,
+        callbacks=callbacks,
         **trainer_kwargs
     )
 
@@ -195,3 +184,8 @@ def run_task(
         metrics = trainer.evaluate(eval_dataset=eval_dataset)
         trainer.log_metrics("eval", metrics)
         trainer.save_metrics("eval", metrics)
+
+
+def run_exp(args: Optional[Dict[str, Any]] = None) -> None:
+    data_args, model_args, training_args = get_train_args(args)
+    run_task(data_args, model_args, training_args)

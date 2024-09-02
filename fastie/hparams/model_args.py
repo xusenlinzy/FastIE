@@ -25,3 +25,9 @@ class ModelArguments:
             "help": "The specific model version to use (can be a branch name, tag name or commit id)."
         },
     )
+    device: str = field(
+        default="cpu",
+        metadata={
+            "help": "The device to load the model for inference."
+        },
+    )

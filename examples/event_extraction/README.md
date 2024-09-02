@@ -39,7 +39,7 @@
 ### 模型训练
 
 ```shell
-python -m fastie.cli gplinker.yaml
+fastie-cli train gplinker.yaml
 ```
 
 
@@ -54,8 +54,8 @@ python evaluate.py \
 
 ### 目前支持的模型
 
-```shell
-from src.fastie import print_supported_models
+```python
+from fastie import print_supported_models
 
 print_supported_models("event")
 ```

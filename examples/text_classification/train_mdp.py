@@ -3,12 +3,12 @@ import sys
 
 from transformers import HfArgumentParser
 
-from src.fastie.hparams import (
+from fastie.hparams import (
     DataArguments,
     ModelArguments,
     FinetuneArguments,
 )
-from src.fastie.train.workflow import run_task
+from fastie.train.tuner import run_task
 
 
 def main():
