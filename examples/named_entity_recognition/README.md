@@ -36,6 +36,49 @@
 + `output_dir`: 模型保存路径
 
 
+
+### 数据处理
+
+将数据集处理成以下 `json` 格式
+
+```json
+{
+  "text": "结果上周六他们主场0：3惨败给了中游球队瓦拉多利德，近7个多月以来西甲首次输球。", 
+  "entities": [
+    {
+      "id": 0, 
+      "entity": "瓦拉多利德", 
+      "start_offset": 20, 
+      "end_offset": 25, 
+      "label": "organization"
+    }, 
+    {
+      "id": 1, 
+      "entity": "西甲", 
+      "start_offset": 33, 
+      "end_offset": 35, 
+      "label": "organization"
+    }
+  ]
+}
+```
+
+字段含义：
+
++ `text`: 文本内容
+
++ `entities`: 该文本所包含的所有实体
+
+    + `id`: 实体 `id`
+
+    + `entity`: 实体名称
+  
+    + `start_offset`: 实体开始位置
+
+    + `end_offset`: 实体结束位置的下一位
+
+    + `label`: 实体类型
+
 ### 模型训练
 
 ```shell

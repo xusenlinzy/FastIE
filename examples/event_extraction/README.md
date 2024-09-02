@@ -36,6 +36,58 @@
 + `output_dir`: 模型保存路径
 
 
+### 数据处理
+
+将数据集处理成以下 `json` 格式
+
+```json
+{
+  "text": "油服巨头哈里伯顿裁员650人 因美国油气开采活动放缓",
+  "id": "f2d936214dc2cb1b873a75ee29a30ec9",
+  "event_list": [
+    {
+      "event_type": "组织关系-裁员",
+      "trigger": "裁员",
+      "trigger_start_index": 8,
+      "arguments": [
+        {
+          "argument_start_index": 0,
+          "role": "裁员方",
+          "argument": "油服巨头哈里伯顿"
+        },
+        {
+          "argument_start_index": 10,
+          "role": "裁员人数",
+          "argument": "650人"
+        }
+      ],
+      "class": "组织关系"
+    }
+  ]
+}
+```
+
+字段含义：
+
++ `text`: 文本内容
+
++ `event_list`: 该文本所包含的所有事件
+
+    + `event_type`: 事件类型
+
+    + `trigger`: 触发词
+  
+    + `trigger_start_index`: 触发词开始位置
+
+    + `arguments`: 论元
+  
+        + `role`: 论元角色
+      
+        + `argument`: 论元名称
+      
+        + `argument_start_index`: 论元名称开始位置
+
+
 ### 模型训练
 
 ```shell

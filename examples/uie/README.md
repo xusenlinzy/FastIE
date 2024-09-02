@@ -76,3 +76,278 @@ python examples/uie/doccano.py \
 ```shell
 fastie-cli train uie.yaml
 ```
+
+### 模型推理
+
+<details>
+<summary>👉 命名实体识别</summary>
+
+```python
+from transformers import AutoModel, AutoTokenizer
+
+tokenizer = AutoTokenizer.from_pretrained("xusenlin/uie-base", trust_remote_code=True)
+model = AutoModel.from_pretrained("xusenlin/uie-base", trust_remote_code=True)
+
+schema = ["时间", "选手", "赛事名称"]  # Define the schema for entity extraction
+print(model.predict(tokenizer, "2月8日上午北京冬奥会自由式滑雪女子大跳台决赛中中国选手谷爱凌以188.25分获得金牌！", schema=schema))
+```
+
+output: 
+
+```json
+[
+  {
+    "时间": [
+      {
+        "end": 6,
+        "probability": 0.98573786,
+        "start": 0,
+        "text": "2月8日上午"
+      }
+    ],
+    "赛事名称": [
+      {
+        "end": 23,
+        "probability": 0.8503085,
+        "start": 6,
+        "text": "北京冬奥会自由式滑雪女子大跳台决赛"
+      }
+    ],
+    "选手": [
+      {
+        "end": 31,
+        "probability": 0.8981544,
+        "start": 28,
+        "text": "谷爱凌"
+      }
+    ]
+  }
+]
+```
+</details>
+
+<details>
+<summary>👉 实体关系抽取</summary>
+
+```python
+schema = {'竞赛名称': ['主办方', '承办方', '已举办次数']}  # Define the schema for relation extraction
+model.set_schema(schema)
+print(model.predict(tokenizer, "2022语言与智能技术竞赛由中国中文信息学会和中国计算机学会联合主办，百度公司、中国中文信息学会评测工作委员会和中国计算机学会自然语言处理专委会承办，已连续举办4届，成为全球最热门的中文NLP赛事之一。"))
+```
+
+output:
+
+```json
+[
+  {
+    "竞赛名称": [
+      {
+        "end": 13,
+        "probability": 0.78253937,
+        "relations": {
+          "主办方": [
+            {
+              "end": 22,
+              "probability": 0.8421704,
+              "start": 14,
+              "text": "中国中文信息学会"
+            },
+            {
+              "end": 30,
+              "probability": 0.75807965,
+              "start": 23,
+              "text": "中国计算机学会"
+            }
+          ],
+          "已举办次数": [
+            {
+              "end": 82,
+              "probability": 0.4671307,
+              "start": 80,
+              "text": "4届"
+            }
+          ],
+          "承办方": [
+            {
+              "end": 55,
+              "probability": 0.700049,
+              "start": 40,
+              "text": "中国中文信息学会评测工作委员会"
+            },
+            {
+              "end": 72,
+              "probability": 0.61934763,
+              "start": 56,
+              "text": "中国计算机学会自然语言处理专委会"
+            },
+            {
+              "end": 39,
+              "probability": 0.8292698,
+              "start": 35,
+              "text": "百度公司"
+            }
+          ]
+        },
+        "start": 0,
+        "text": "2022语言与智能技术竞赛"
+      }
+    ]
+  }
+]
+```
+</details>
+
+
+<details>
+<summary>👉  事件抽取</summary>
+
+```python
+schema = {'地震触发词': ['地震强度', '时间', '震中位置', '震源深度']}  # Define the schema for event extraction
+model.set_schema(schema)
+print(model.predict(tokenizer, "中国地震台网正式测定：5月16日06时08分在云南临沧市凤庆县(北纬24.34度，东经99.98度)发生3.5级地震，震源深度10千米。"))
+```
+
+output:
+
+```json
+[
+  {
+    "地震触发词": [
+      {
+        "end": 58,
+        "probability": 0.99774253,
+        "relations": {
+          "地震强度": [
+            {
+              "end": 56,
+              "probability": 0.9980802,
+              "start": 52,
+              "text": "3.5级"
+            }
+          ],
+          "时间": [
+            {
+              "end": 22,
+              "probability": 0.98533,
+              "start": 11,
+              "text": "5月16日06时08分"
+            }
+          ],
+          "震中位置": [
+            {
+              "end": 50,
+              "probability": 0.7874015,
+              "start": 23,
+              "text": "云南临沧市凤庆县(北纬24.34度，东经99.98度)"
+            }
+          ],
+          "震源深度": [
+            {
+              "end": 67,
+              "probability": 0.9937973,
+              "start": 63,
+              "text": "10千米"
+            }
+          ]
+        },
+        "start": 56,
+        "text": "地震"
+      }
+    ]
+  }
+]
+```
+</details>
+
+<details>
+<summary>👉 评论观点抽取</summary>
+
+```python
+schema = {'评价维度': ['观点词', '情感倾向[正向，负向]']}  # Define the schema for opinion extraction
+model.set_schema(schema)
+print(model.predict(tokenizer, "店面干净，很清静，服务员服务热情，性价比很高，发现收银台有排队"))
+```
+
+output:
+
+```json
+[
+  {
+    "评价维度": [
+      {
+        "end": 20,
+        "probability": 0.98170394,
+        "relations": {
+          "情感倾向[正向，负向]": [
+            {
+              "probability": 0.9966142773628235,
+              "text": "正向"
+            }
+          ],
+          "观点词": [
+            {
+              "end": 22,
+              "probability": 0.95739645,
+              "start": 21,
+              "text": "高"
+            }
+          ]
+        },
+        "start": 17,
+        "text": "性价比"
+      },
+      {
+        "end": 2,
+        "probability": 0.9696847,
+        "relations": {
+          "情感倾向[正向，负向]": [
+            {
+              "probability": 0.9982153177261353,
+              "text": "正向"
+            }
+          ],
+          "观点词": [
+            {
+              "end": 4,
+              "probability": 0.9945317,
+              "start": 2,
+              "text": "干净"
+            }
+          ]
+        },
+        "start": 0,
+        "text": "店面"
+      }
+    ]
+  }
+]
+```
+</details>
+
+
+<details>
+<summary>👉 情感分类</summary>
+
+
+```python
+schema = "情感倾向[正向，负向]"  # Define the schema for opinion extraction
+model.set_schema(schema)
+print(model.predict(tokenizer, "这个产品用起来真的很流畅，我非常喜欢"))
+```
+
+output:
+
+```json
+[
+  {
+    "情感倾向[正向，负向]": [
+      {
+        "probability": 0.9990023970603943,
+        "text": "正向"
+      }
+    ]
+  }
+]
+```
+</details>
+
