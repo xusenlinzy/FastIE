@@ -6,7 +6,7 @@ import torch
 import transformers
 from transformers.utils import is_torch_cuda_available
 
-VERSION = "1.0.0.dev0"
+VERSION = "1.0.1.dev0"
 
 
 def print_env() -> None:

@@ -339,9 +339,9 @@ class UIEDecoder(nn.Module):
                 if end < 0:
                     start += len(prompt) + 1
                     end += len(prompt) + 1
-                    result = {"text": prompt[start: end], "probability": prob[i]}
+                    result = {"text": prompt[start: end], "probability": float(prob[i])}
                 else:
-                    result = {"text": text[start: end], "start": start, "end": end, "probability": prob[i]}
+                    result = {"text": text[start: end], "start": start, "end": end, "probability": float(prob[i])}
 
                 result_list.append(result)
             results.append(result_list)

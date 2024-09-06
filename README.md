@@ -34,9 +34,11 @@
 
 ## 📦 快速安装
 
+源码安装
 
 ```shell
-pip install --upgrade fastie
+git clone https://github.com/xusenlinzy/FastIE.git
+pip install -e .
 ```
 
 

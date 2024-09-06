@@ -1,6 +1,7 @@
 import sys
 from enum import Enum, unique
 
+from . import print_supported_models
 from .api import run_api
 from .extras.env import VERSION, print_env
 from .extras.logging import get_logger
@@ -41,6 +42,7 @@ class Command(str, Enum):
     DEMO = "demo"
     VER = "version"
     HELP = "help"
+    MODELS = "models"
 
 
 def main():
@@ -57,5 +59,7 @@ def main():
         print(WELCOME)
     elif command == Command.HELP:
         print(USAGE)
+    elif command == Command.MODELS:
+        print_supported_models()
     else:
         raise NotImplementedError("Unknown command: {}".format(command))
