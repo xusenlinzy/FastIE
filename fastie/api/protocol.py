@@ -67,3 +67,18 @@ class UIEResponse(BaseModel):
     created: int = Field(default_factory=lambda: int(time.time()))
     model: str
     labels: List[Dict[str, Any]]
+
+
+RESPONSE_MAP = {
+    "classification": CLSResponse,
+    "ner": NERResponse,
+    "relextraction": RELResponse,
+    "eventextraction": EVENTResponse,
+    "uiemodel": UIEResponse,
+}
+
+
+def get_response_model(architecture: str):
+    for k, v in RESPONSE_MAP.items():
+        if architecture.endswith(k):
+            return v

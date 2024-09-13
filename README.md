@@ -90,7 +90,7 @@ print(model.predict(tokenizer, "因肺过度充气，常将肝脏推向下方。
 
 ```shell
 # fastie-cli api --model_name_or_path path_to_model --port 9000
-fastie-cli demo --model_name_or_path path_to_model --port 9000
+fastie-cli demo --model_name_or_path path_to_model --port 9000 --device cuda
 ```
 
 

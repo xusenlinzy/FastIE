@@ -14,7 +14,7 @@ USAGE = (
     + "| Usage:                                                             |\n"
     + "|   fastie-cli api -h: launch an API server                          |\n"
     + "|   fastie-cli train -h: train models                                |\n"
-    + "|   fastie-cli demo -h: launch a interface in Web UI             |\n"
+    + "|   fastie-cli demo -h: launch a interface in Web UI                 |\n"
     + "|   fastie-cli version: show version info                            |\n"
     + "-" * 70
 )

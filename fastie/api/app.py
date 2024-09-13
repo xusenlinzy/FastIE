@@ -14,13 +14,7 @@ from transformers.utils import is_torch_cuda_available
 from transformers.utils.import_utils import _is_package_available
 from typing_extensions import Annotated
 
-from .protocol import (
-    IECreateParams,
-    CLSResponse,
-    NERResponse,
-    RELResponse,
-    EVENTResponse,
-)
+from .protocol import IECreateParams, get_response_model
 from ..hparams.parser import get_infer_args
 
 if _is_package_available("fastapi"):
@@ -31,20 +25,6 @@ if _is_package_available("fastapi"):
 
 if _is_package_available("uvicorn"):
     import uvicorn
-
-
-RESPONSE_MAP = {
-    "classification": CLSResponse,
-    "ner": NERResponse,
-    "relextraction": RELResponse,
-    "eventextraction": EVENTResponse,
-}
-
-
-def get_response_model(architecture: str):
-    for k, v in RESPONSE_MAP.items():
-        if architecture.endswith(k):
-            return v
 
 
 def torch_gc() -> None:
