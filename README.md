@@ -41,6 +41,17 @@ git clone https://github.com/xusenlinzy/FastIE.git
 pip install -e .
 ```
 
+docker启动
+
+```shell
+docker build -t fastie .
+
+docker compose up -d
+
+docker exec -it fastie bash
+
+```
+
 
 ## 🚀 模型训练
 
