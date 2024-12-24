@@ -23,6 +23,10 @@ from transformers.utils import (
 )
 from transformers.utils.import_utils import _is_package_available
 
+from .configuration import (
+    BertCnnNerConfig,
+    RoFormerCnnNerConfig,
+)
 from .decode_utils import (
     tensor_to_cpu,
     NerDecoder,
@@ -274,8 +278,10 @@ class CnnForNer(PreTrainedModel, NerDecoder):
 
 
 class BertForCnnNer(BertPreTrainedModel, CnnForNer):
-    ...
+
+    config_class = BertCnnNerConfig
 
 
 class RoFormerForCnnNer(RoFormerPreTrainedModel, CnnForNer):
-    ...
+
+    config_class = RoFormerCnnNerConfig

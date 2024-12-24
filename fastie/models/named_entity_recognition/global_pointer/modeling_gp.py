@@ -22,6 +22,10 @@ from transformers.utils import (
     add_start_docstrings,
 )
 
+from .configuration import (
+    BertGlobalPointerNerConfig,
+    RoFormerGlobalPointerNerConfig,
+)
 from .decode_utils import (
     tensor_to_cpu,
     NerDecoder,
@@ -187,8 +191,10 @@ class GlobalPointerForNer(PreTrainedModel, NerDecoder):
 
 
 class BertForGlobalPointerNer(BertPreTrainedModel, GlobalPointerForNer):
-    ...
+
+    config_class = BertGlobalPointerNerConfig
 
 
 class RoFormerForGlobalPointerNer(RoFormerPreTrainedModel, GlobalPointerForNer):
-    ...
+
+    config_class = RoFormerGlobalPointerNerConfig

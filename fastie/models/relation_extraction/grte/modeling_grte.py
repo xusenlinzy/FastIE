@@ -21,6 +21,10 @@ from transformers.utils import (
     add_start_docstrings,
 )
 
+from .configuration import (
+    BertGrteRelConfig,
+    RoFormerGrteRelConfig,
+)
 from .decode_utils import (
     RelExtractionDecoder,
     tensor_to_cpu,
@@ -233,8 +237,10 @@ class GrteForRelExtraction(PreTrainedModel, RelExtractionDecoder):
 
 
 class BertForGrteRelExtraction(BertPreTrainedModel, GrteForRelExtraction):
-    ...
+
+    config_class = BertGrteRelConfig
 
 
 class RoFormerForGrteRelExtraction(RoFormerPreTrainedModel, GrteForRelExtraction):
-    ...
+
+    config_class = RoFormerGrteRelConfig

@@ -23,6 +23,10 @@ from transformers.utils import (
     add_start_docstrings,
 )
 
+from .configuration import (
+    BertGPLinkerEventExtractionConfig,
+    RoFormerGPLinkerEventExtractionConfig,
+)
 from .decode_utils import (
     EventExtractionDecoder,
     tensor_to_numpy,
@@ -230,8 +234,10 @@ class GPLinkerForEventExtraction(PreTrainedModel, EventExtractionDecoder):
 
 
 class BertForGPLinkerEventExtraction(BertPreTrainedModel, GPLinkerForEventExtraction):
-    ...
+
+    config_class = BertGPLinkerEventExtractionConfig
 
 
 class RoFormerForGPLinkerEventExtraction(RoFormerPreTrainedModel, GPLinkerForEventExtraction):
-    ...
+
+    config_class = RoFormerGPLinkerEventExtractionConfig

@@ -21,6 +21,12 @@ from transformers.utils import (
     add_start_docstrings,
 )
 
+from .configuration import (
+    BertCrfNerConfig,
+    BertCascadeCrfNerConfig,
+    RoFormerCrfNerConfig,
+    RoFormerCascadeCrfNerConfig,
+)
 from .decode_utils import (
     get_entities,
     sequence_padding,
@@ -322,16 +328,20 @@ class CascadeCrfForNer(PreTrainedModel, NerDecoder):
 
 
 class BertForCrfNer(BertPreTrainedModel, CrfForNer):
-    ...
+
+    config_class = BertCrfNerConfig
 
 
 class BertForCascadeCrfNer(BertPreTrainedModel, CascadeCrfForNer):
-    ...
+
+    config_class = BertCascadeCrfNerConfig
 
 
 class RoFormerForCrfNer(RoFormerPreTrainedModel, CrfForNer):
-    ...
+
+    config_class = RoFormerCrfNerConfig
 
 
 class RoFormerForCascadeCrfNer(RoFormerPreTrainedModel, CascadeCrfForNer):
-    ...
+
+    config_class = RoFormerCascadeCrfNerConfig

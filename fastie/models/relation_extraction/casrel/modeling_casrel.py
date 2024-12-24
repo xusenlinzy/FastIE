@@ -21,6 +21,10 @@ from transformers.utils import (
     add_start_docstrings,
 )
 
+from .configuration import (
+    BertCasrelRelConfig,
+    RoFormerCasrelRelConfig,
+)
 from .decode_utils import (
     RelExtractionDecoder,
 )
@@ -260,8 +264,10 @@ class CasrelForRelExtraction(PreTrainedModel, RelExtractionDecoder):
 
 
 class BertForCasrelRelExtraction(BertPreTrainedModel, CasrelForRelExtraction):
-    ...
+
+    config_class = BertCasrelRelConfig
 
 
 class RoFormerForCasrelRelExtraction(RoFormerPreTrainedModel, CasrelForRelExtraction):
-    ...
+
+    config_class = RoFormerCasrelRelConfig

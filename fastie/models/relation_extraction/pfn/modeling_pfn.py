@@ -23,6 +23,10 @@ from transformers.utils import (
     add_start_docstrings,
 )
 
+from .configuration import (
+    BertPfnRelConfig,
+    RoFormerPfnRelConfig,
+)
 from .decode_utils import (
     RelExtractionDecoder,
     tensor_to_numpy,
@@ -208,8 +212,10 @@ class PfnForRelExtraction(PreTrainedModel, RelExtractionDecoder):
 
 
 class BertForPfnRelExtraction(BertPreTrainedModel, PfnForRelExtraction):
-    ...
+
+    config_class = BertPfnRelConfig
 
 
 class RoFormerForPfnRelExtraction(RoFormerPreTrainedModel, PfnForRelExtraction):
-    ...
+
+    config_class = RoFormerPfnRelConfig

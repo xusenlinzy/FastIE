@@ -22,6 +22,10 @@ from transformers.utils import (
     add_start_docstrings,
 )
 
+from .configuration import (
+    BertOneRelRelConfig,
+    RoFormerOneRelRelConfig,
+)
 from .decode_utils import (
     RelExtractionDecoder,
     tensor_to_numpy,
@@ -194,8 +198,10 @@ class OneRelForRelExtraction(PreTrainedModel, RelExtractionDecoder):
 
 
 class BertForOneRelRelExtraction(BertPreTrainedModel, OneRelForRelExtraction):
-    ...
+
+    config_class = BertOneRelRelConfig
 
 
 class RoFormerForOneRelRelExtraction(RoFormerPreTrainedModel, OneRelForRelExtraction):
-    ...
+
+    config_class = RoFormerOneRelRelConfig

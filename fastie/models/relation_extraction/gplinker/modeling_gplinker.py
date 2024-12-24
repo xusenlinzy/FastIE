@@ -23,6 +23,10 @@ from transformers.utils import (
     add_start_docstrings,
 )
 
+from .configuration import (
+    BertGPLinkerRelConfig,
+    RoFormerGPLinkerRelConfig,
+)
 from .decode_utils import (
     RelExtractionDecoder,
     tensor_to_numpy,
@@ -222,8 +226,10 @@ class GPLinkerForRelExtraction(PreTrainedModel, RelExtractionDecoder):
 
 
 class BertForGPLinkerRelExtraction(BertPreTrainedModel, GPLinkerForRelExtraction):
-    ...
+
+    config_class = BertGPLinkerRelConfig
 
 
 class RoFormerForGPLinkerRelExtraction(RoFormerPreTrainedModel, GPLinkerForRelExtraction):
-    ...
+
+    config_class = RoFormerGPLinkerRelConfig

@@ -21,6 +21,10 @@ from transformers.utils import (
     add_start_docstrings,
 )
 
+from .configuration import (
+    BertTPLinkerNerConfig,
+    RoFormerTPLinkerNerConfig,
+)
 from .decode_utils import (
     tensor_to_cpu,
     NerDecoder,
@@ -197,8 +201,10 @@ class TPLinkerForNer(PreTrainedModel, NerDecoder):
 
 
 class BertForTPLinkerNer(BertPreTrainedModel, TPLinkerForNer):
-    ...
+
+    config_class = BertTPLinkerNerConfig
 
 
 class RoFormerForTPLinkerNer(RoFormerPreTrainedModel, TPLinkerForNer):
-    ...
+
+    config_class = RoFormerTPLinkerNerConfig

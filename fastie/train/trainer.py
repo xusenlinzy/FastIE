@@ -17,7 +17,15 @@ from torch.utils.data import DataLoader, Dataset
 from transformers import Trainer
 from transformers.trainer_pt_utils import find_batch_size, IterableDatasetShard
 from transformers.trainer_utils import has_length
-from transformers.utils import is_apex_available
+from transformers.training_args import OptimizerNames
+from transformers.utils import (
+    is_apex_available,
+    is_torch_mlu_available,
+    is_torch_mps_available,
+    is_torch_musa_available,
+    is_torch_xpu_available,
+    is_torch_npu_available,
+)
 
 from ..extras import get_logger, FGM
 from ..metrics.extraction import (
@@ -48,13 +56,38 @@ class BaseTrainer(Trainer):
             self.fgm = FGM(self.model)
 
     def training_step(
-        self, model: nn.Module, inputs: Dict[str, Union[torch.Tensor, Any]]
+        self, model: nn.Module, inputs: Dict[str, Union[torch.Tensor, Any]], num_items_in_batch=None
     ) -> torch.Tensor:
         model.train()
-        inputs = self._prepare_inputs(inputs)
+        if hasattr(self.optimizer, "train") and callable(self.optimizer.train):
+            self.optimizer.train()
 
+        inputs = self._prepare_inputs(inputs)
         with self.compute_loss_context_manager():
-            loss = self.compute_loss(model, inputs)
+            loss = self.compute_loss(model, inputs, num_items_in_batch=num_items_in_batch)
+
+        if (
+            self.args.torch_empty_cache_steps is not None
+            and self.state.global_step % self.args.torch_empty_cache_steps == 0
+        ):
+            if is_torch_xpu_available():
+                torch.xpu.empty_cache()
+            elif is_torch_mlu_available():
+                torch.mlu.empty_cache()
+            elif is_torch_musa_available():
+                torch.musa.empty_cache()
+            elif is_torch_npu_available():
+                torch.npu.empty_cache()
+            elif is_torch_mps_available(min_version="2.0"):
+                torch.mps.empty_cache()
+            else:
+                torch.cuda.empty_cache()
+
+        kwargs = {}
+
+        # For LOMO optimizers you need to explicitly use the learnign rate
+        if self.args.optim in [OptimizerNames.LOMO, OptimizerNames.ADALOMO]:
+            kwargs["learning_rate"] = self._get_learning_rate()
 
         if self.args.n_gpu > 1:
             loss = loss.mean()  # mean() to average on multi-gpu parallel training
@@ -69,7 +102,7 @@ class BaseTrainer(Trainer):
             self.fgm.attack()
 
             with self.compute_loss_context_manager():
-                loss_adv = self.compute_loss(model, inputs)
+                loss_adv = self.compute_loss(model, inputs, num_items_in_batch=num_items_in_batch)
 
             if self.args.n_gpu > 1:
                 loss_adv = loss_adv.mean()
@@ -85,7 +118,11 @@ class BaseTrainer(Trainer):
 
             self.fgm.restore()
 
-        return loss.detach() / self.args.gradient_accumulation_steps
+        del inputs
+        if num_items_in_batch is None:
+            return loss.detach() / self.args.gradient_accumulation_steps
+
+        return loss.detach()
 
 
 class OptimizerTrainer(BaseTrainer):

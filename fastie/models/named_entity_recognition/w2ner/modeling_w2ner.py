@@ -22,6 +22,10 @@ from transformers.utils import (
     add_start_docstrings,
 )
 
+from .configuration import (
+    BertW2nerConfig,
+    RoFormerW2nerConfig,
+)
 from .decode_utils import (
     tensor_to_cpu,
     W2nerDecoder,
@@ -268,8 +272,10 @@ class W2ner(PreTrainedModel, W2nerDecoder):
 
 
 class BertForW2ner(BertPreTrainedModel, W2ner):
-    ...
+
+    config_class = BertW2nerConfig
 
 
 class RoFormerForW2ner(RoFormerPreTrainedModel, W2ner):
-    ...
+
+    config_class = RoFormerW2nerConfig

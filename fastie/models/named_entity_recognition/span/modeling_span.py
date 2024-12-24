@@ -21,6 +21,10 @@ from transformers.utils import (
     add_start_docstrings,
 )
 
+from .configuration import (
+    BertSpanNerConfig,
+    RoFormerSpanNerConfig,
+)
 from .decode_utils import (
     tensor_to_cpu,
     NerDecoder,
@@ -174,8 +178,10 @@ class SpanForNer(PreTrainedModel, NerDecoder):
 
 
 class BertForSpanNer(BertPreTrainedModel, SpanForNer):
-    ...
+
+    config_class = BertSpanNerConfig
 
 
 class RoFormerForSpanNer(RoFormerPreTrainedModel, SpanForNer):
-    ...
+
+    config_class = RoFormerSpanNerConfig

@@ -22,6 +22,10 @@ from transformers.utils import (
     add_start_docstrings,
 )
 
+from .configuration import (
+    BertTPLinkerRelConfig,
+    RoFormerTPLinkerRelConfig,
+)
 from .decode_utils import (
     RelExtractionDecoder,
     tensor_to_cpu,
@@ -271,8 +275,10 @@ class TPLinkerForRelExtraction(PreTrainedModel, RelExtractionDecoder):
 
 
 class BertForTPLinkerRelExtraction(BertPreTrainedModel, TPLinkerForRelExtraction):
-    ...
+
+    config_class = BertTPLinkerRelConfig
 
 
 class RoFormerForTPLinkerRelExtraction(RoFormerPreTrainedModel, TPLinkerForRelExtraction):
-    ...
+
+    config_class = RoFormerTPLinkerRelConfig
