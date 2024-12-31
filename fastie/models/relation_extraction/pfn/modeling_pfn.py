@@ -3,8 +3,8 @@ from dataclasses import dataclass
 from typing import (
     Optional,
     List,
-    Any,
     Tuple,
+    Set,
 )
 
 import numpy as np
@@ -42,10 +42,10 @@ from .modules import (
 class RelationExtractionOutput(ModelOutput):
     loss: Optional[torch.FloatTensor] = None
     logits: Optional[torch.FloatTensor] = None
-    predictions: List[Any] = None
-    groundtruths: List[Any] = None
-    hidden_states: Optional[Tuple[torch.FloatTensor]] = None
-    attentions: Optional[Tuple[torch.FloatTensor]] = None
+    predictions: List[Set[Tuple[str, str, str]]] = None
+    groundtruths: List[Set[Tuple[str, str, str]]] = None
+    hidden_states: Optional[Tuple[torch.FloatTensor, ...]] = None
+    attentions: Optional[Tuple[torch.FloatTensor, ...]] = None
 
 
 def get_base_model(config: "PretrainedConfig", **kwargs) -> "PreTrainedModel":
@@ -109,8 +109,8 @@ class PfnForRelExtraction(PreTrainedModel, RelExtractionDecoder):
         head_labels: Optional[torch.Tensor] = None,
         tail_labels: Optional[torch.Tensor] = None,
         texts: Optional[List[str]] = None,
-        offset_mapping: Optional[List[Any]] = None,
-        target: Optional[List[Any]] = None,
+        offset_mapping: Optional[List[List[List[int]]]] = None,
+        target: Optional[List[Set[Tuple[str, str, str]]]] = None,
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
     ) -> RelationExtractionOutput:
@@ -162,8 +162,8 @@ class PfnForRelExtraction(PreTrainedModel, RelExtractionDecoder):
         re_tail_score: torch.Tensor,
         attention_mask: torch.Tensor,
         texts: List[str],
-        offset_mapping: List[Any],
-    ) -> List[set]:
+        offset_mapping: List[List[List[int]]],
+    ) -> List[Set[Tuple[str, str, str]]]:
         ner_score = tensor_to_numpy(ner_score)
         re_head_score = tensor_to_numpy(re_head_score)
         re_tail_score = tensor_to_numpy(re_tail_score)

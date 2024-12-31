@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from typing import (
     Optional,
     List,
-    Any,
     Tuple,
+    Set,
 )
 
 import torch
@@ -28,7 +28,7 @@ from .configuration import (
 )
 from .decode_utils import (
     tensor_to_cpu,
-    W2nerDecoder,
+    NerDecoder,
 )
 from .modules import (
     DilateConvLayer,
@@ -41,10 +41,10 @@ from .modules import (
 class SequenceLabelingOutput(ModelOutput):
     loss: Optional[torch.FloatTensor] = None
     logits: torch.FloatTensor = None
-    predictions: List[Any] = None
-    groundtruths: List[Any] = None
-    hidden_states: Optional[Tuple[torch.FloatTensor]] = None
-    attentions: Optional[Tuple[torch.FloatTensor]] = None
+    predictions: Optional[List[Set[Tuple[str, int, int, str]]]] = None
+    groundtruths: Optional[List[Set[Tuple[str, int, int, str]]]] = None
+    hidden_states: Optional[Tuple[torch.FloatTensor, ...]] = None
+    attentions: Optional[Tuple[torch.FloatTensor, ...]] = None
 
 
 def get_base_model(config: "PretrainedConfig", **kwargs) -> "PreTrainedModel":
@@ -65,7 +65,7 @@ def get_base_model(config: "PretrainedConfig", **kwargs) -> "PreTrainedModel":
         🚀 [Official Code](https://github.com/ljynlp/W2NER)
     """
 )
-class W2ner(PreTrainedModel, W2nerDecoder):
+class W2ner(PreTrainedModel, NerDecoder):
     def __init__(self, config):
         super().__init__(config)
         config = self.apply_config(config)
@@ -134,7 +134,7 @@ class W2ner(PreTrainedModel, W2nerDecoder):
         grid_mask: Optional[torch.Tensor] = None,
         grid_labels: Optional[torch.Tensor] = None,
         texts: Optional[List[str]] = None,
-        target: Optional[List[Any]] = None,
+        target: Optional[List[Set[Tuple[str, int, int, str]]]] = None,
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
     ) -> SequenceLabelingOutput:
@@ -203,7 +203,7 @@ class W2ner(PreTrainedModel, W2nerDecoder):
         logits: torch.Tensor,
         input_lengths: torch.Tensor,
         texts: List[str],
-    ) -> List[set]:
+    ) -> List[Set[Tuple[str, int, int, str]]]:
         decode_labels = []
         logits, input_lengths = tensor_to_cpu(logits.argmax(-1)), tensor_to_cpu(input_lengths)
         id2label = self.config.id2label

@@ -1,4 +1,5 @@
 
+import time
 from typing import List, Union
 
 import gradio as gr
@@ -29,17 +30,22 @@ class PlayGround:
         if self.title is None:
             self.title = "Fast Information Extraction Demo"
 
-    def extract(self, texts: Union[str, List[str]], batch_size=32, max_length=512, ie_schema=None):
+    def extract(self, texts: Union[str, List[str]], language: str, use_cuda=False, max_length=512, ie_schema=None):
         architecture = self.model.config.architectures[0].lower()
         if ie_schema and "uie" in architecture:
-            self.model.set_schema(ie_schema)
+            self.model.set_schema(eval(ie_schema.strip()))
 
-        return self.model.predict(
+        start = time.time()
+        res = self.model.predict(
             self.tokenizer,
             texts,
-            batch_size=batch_size,
+            batch_size=32,
             max_length=max_length,
+            language=language,
+            device="cuda:0" if use_cuda else "cpu",
         )
+
+        return time.time() - start, res
 
     def launch(self) -> None:
         self.demo.launch(server_name=self.server_name, server_port=self.server_port, **self.kwargs)
@@ -51,10 +57,19 @@ class PlayGround:
             [
                 gr.Textbox(
                     placeholder="Enter sentence here...",
-                    lines=5
+                    lines=5,
+                    label="文本"
                 ),
+                gr.Dropdown(
+                    choices=["zh", "en"],
+                    value="zh",
+                    label="语言"
+                ),
+                gr.Checkbox(label="使用GPU"),
+                gr.Slider(10, 512, value=512, label="最大长度"),
+                gr.Text(label="UIE模型SCHEMA", placeholder='["时间", "地点"]')
             ],
-            gr.Json(label="Result"),
+            [gr.Label(label="推理时间（s）"), gr.Json(label="抽取结果")],
             title=self.title,
         )
 

@@ -24,7 +24,10 @@ def batchify_ee_labels(batch, features, return_offset_mapping=False):
     if "text" in features[0].keys():
         batch["texts"] = [feature.pop("text") for feature in features]
     if "target" in features[0].keys():
-        batch["target"] = [[[tuple([a[0], a[1], a[2], int(a[3]), int(a[4])]) for a in e] for e in feature.pop("target")] for feature in features]
+        batch["target"] = [
+            [[tuple([a[0], a[1], a[2], int(a[3]), int(a[4])]) for a in e] for e in feature.pop("target")]
+            for feature in features
+        ]
     if return_offset_mapping and "offset_mapping" in features[0].keys():
         batch["offset_mapping"] = [feature.pop("offset_mapping") for feature in features]
 

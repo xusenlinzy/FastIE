@@ -21,7 +21,9 @@ from transformers.tokenization_utils_base import BatchEncoding
 from .decode_utils import sequence_padding
 
 
-def batchify_ner_labels(batch, features, return_offset_mapping=False):
+def batchify_ner_labels(
+    batch: BatchEncoding, features: List[Dict[str, Any]], return_offset_mapping: bool = False
+) -> BatchEncoding:
     """ 命名实体识别验证集标签处理 """
     if "text" in features[0].keys():
         batch["texts"] = [feature.pop("text") for feature in features]
@@ -32,7 +34,6 @@ def batchify_ner_labels(batch, features, return_offset_mapping=False):
         ]
     if return_offset_mapping and "offset_mapping" in features[0].keys():
         batch["offset_mapping"] = [feature.pop("offset_mapping") for feature in features]
-
     return batch
 
 
@@ -90,7 +91,7 @@ class GlobalPointerForNerTokenizer(PreTrainedTokenizerBase):
     def convert_to_features(
         self,
         examples: Mapping,
-        label_to_id: dict,
+        label_to_id: Dict[str, int],
         max_length: int = 256,
         text_column_name: str = "text",
         label_column_name: str = "entities",
@@ -118,13 +119,13 @@ class GlobalPointerForNerTokenizer(PreTrainedTokenizerBase):
                 res = []
                 for _ent in entity_list:
                     try:
-                        start = tokenized_inputs.char_to_token(i, _ent['start_offset'])
-                        end = tokenized_inputs.char_to_token(i, _ent['end_offset'] - 1)
+                        start = tokenized_inputs.char_to_token(i, _ent["start_offset"])
+                        end = tokenized_inputs.char_to_token(i, _ent["end_offset"] - 1)
                     except Exception:
                         continue
                     if start is None or end is None:
                         continue
-                    res.append([start, end, label_to_id[_ent['label']]])
+                    res.append([start, end, label_to_id[_ent["label"]]])
                 labels.append(res)
             tokenized_inputs["labels"] = labels
 

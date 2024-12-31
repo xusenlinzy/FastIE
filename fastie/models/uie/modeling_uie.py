@@ -34,8 +34,8 @@ class UIEModelOutput(ModelOutput):
     end_prob: torch.FloatTensor = None
     start_positions: torch.FloatTensor = None
     end_positions: torch.FloatTensor = None
-    hidden_states: Optional[Tuple[torch.FloatTensor]] = None
-    attentions: Optional[Tuple[torch.FloatTensor]] = None
+    hidden_states: Optional[Tuple[torch.FloatTensor, ...]] = None
+    attentions: Optional[Tuple[torch.FloatTensor, ...]] = None
 
 
 class UIEModel(ErniePreTrainedModel, UIEDecoder):

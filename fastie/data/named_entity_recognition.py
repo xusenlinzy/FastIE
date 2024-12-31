@@ -83,13 +83,13 @@ def load_ner_train_dev_dataset(
         if with_indices:
             return {
                 "target": {
-                    (ent['label'], str(ent['indices'][0]), str(ent['indices'][-1] + 1), ent['entity'])
+                    (ent["label"], str(ent["indices"][0]), str(ent["indices"][-1] + 1), ent["entity"])
                     for ent in example[label_column_name]
                 }
             }
         return {
             "target": {
-                (ent['label'], str(ent['start_offset']), str(ent['end_offset']), ent['entity'])
+                (ent["label"], str(ent["start_offset"]), str(ent["end_offset"]), ent["entity"])
                 for ent in example[label_column_name]
             }
         }

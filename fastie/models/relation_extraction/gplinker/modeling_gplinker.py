@@ -3,8 +3,8 @@ from dataclasses import dataclass
 from typing import (
     Optional,
     List,
-    Any,
     Tuple,
+    Set,
 )
 
 import numpy as np
@@ -41,10 +41,10 @@ from .modules import (
 class RelationExtractionOutput(ModelOutput):
     loss: Optional[torch.FloatTensor] = None
     logits: Optional[torch.FloatTensor] = None
-    predictions: List[Any] = None
-    groundtruths: List[Any] = None
-    hidden_states: Optional[Tuple[torch.FloatTensor]] = None
-    attentions: Optional[Tuple[torch.FloatTensor]] = None
+    predictions: List[Set[Tuple[str, str, str]]] = None
+    groundtruths: List[Set[Tuple[str, str, str]]] = None
+    hidden_states: Optional[Tuple[torch.FloatTensor, ...]] = None
+    attentions: Optional[Tuple[torch.FloatTensor, ...]] = None
 
 
 def get_base_model(config: "PretrainedConfig", **kwargs) -> "PreTrainedModel":
@@ -82,6 +82,7 @@ class GPLinkerForRelExtraction(PreTrainedModel, RelExtractionDecoder):
         self.hidden_size = config.hidden_size
         # 实体首尾对应，需要相对位置编码且保证首不超过尾
         self.entity_tagger = EfficientGlobalPointer(config.hidden_size, 2, config.head_size)
+
         # 主体-客体首首对应，不需要相对位置编码和保证首不超过尾
         self.head_tagger = EfficientGlobalPointer(
             config.hidden_size,
@@ -90,6 +91,7 @@ class GPLinkerForRelExtraction(PreTrainedModel, RelExtractionDecoder):
             use_rope=False,
             tril_mask=False,
         )
+
         # 主体-客体尾尾对应，不需要相对位置编码和保证首不超过尾
         self.tail_tagger = EfficientGlobalPointer(
             config.hidden_size,
@@ -119,8 +121,8 @@ class GPLinkerForRelExtraction(PreTrainedModel, RelExtractionDecoder):
         head_labels: Optional[torch.Tensor] = None,
         tail_labels: Optional[torch.Tensor] = None,
         texts: Optional[List[str]] = None,
-        offset_mapping: Optional[List[Any]] = None,
-        target: Optional[List[Any]] = None,
+        offset_mapping: Optional[List[List[List[int]]]] = None,
+        target: Optional[List[Set[Tuple[str, str, str]]]] = None,
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
     ) -> RelationExtractionOutput:
@@ -172,8 +174,8 @@ class GPLinkerForRelExtraction(PreTrainedModel, RelExtractionDecoder):
         tail_logits: torch.Tensor,
         masks: torch.Tensor,
         texts: List[str],
-        offset_mapping: List[Any],
-    ) -> List[set]:
+        offset_mapping: List[List[List[int]]],
+    ) -> List[Set[Tuple[str, str, str]]]:
         all_spo_list = []
         batch_size = entity_logits.shape[0]
         masks = tensor_to_numpy(masks)

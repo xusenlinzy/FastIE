@@ -11,10 +11,8 @@ def get_sinusoid_encoding_table(n_position: int, d_hid: int):
     embeddings_table = torch.zeros(n_position, d_hid)
     position = torch.arange(0, n_position, dtype=torch.float).unsqueeze(1)
     div_term = torch.exp(torch.arange(0, d_hid, 2).float() * (-math.log(10000.0) / d_hid))
-
     embeddings_table[:, 0::2] = torch.sin(position * div_term)
     embeddings_table[:, 1::2] = torch.cos(position * div_term)
-
     return embeddings_table
 
 
@@ -25,39 +23,36 @@ class RoPEPositionEncoding(nn.Module):
         super(RoPEPositionEncoding, self).__init__()
         self.max_seq_len_cache = -1
         self.embedding_size = embedding_size
-        # 支持两种方式，一种是奇偶相邻排列，一种是上下排列, 目前只在chatglm中看到updown排列
-        assert rope_rank in {'adjacent', 'updown'}, "rank kwarg only support 'adjacent' and 'updown' "
+        # 支持两种方式，一种是奇偶相邻排列，一种是上下排列
+        assert rope_rank in {"adjacent", "updown"}, "rank kwarg only support 'adjacent' and 'updown' "
         self.rope_rank = rope_rank
 
     def initialize(self, max_position: int):
         position_embeddings = get_sinusoid_encoding_table(max_position, self.embedding_size)  # [seq_len, hdsz]
-        if self.rope_rank == 'adjacent':
+        if self.rope_rank == "adjacent":
             cos_position = position_embeddings[:, 1::2].repeat_interleave(2, dim=-1)  # [seq_len, hdsz]
             sin_position = position_embeddings[:, ::2].repeat_interleave(2, dim=-1)  # [seq_len, hdsz]
-        elif self.rope_rank == 'updown':  # 目前仅chatglm使用
+        elif self.rope_rank == "updown":
             cos_position = position_embeddings[:, 1::2].repeat(1, 2)  # [seq_len, hdsz]
             sin_position = position_embeddings[:, ::2].repeat(1, 2)  # [seq_len, hdsz]
         else:
-            raise ValueError('Args `rope_rank` only support `adjacent` and `adjacent` mode')
+            raise ValueError("Args `rope_rank` only support `adjacent` and `adjacent` mode")
         return cos_position, sin_position
 
     def forward(self, qw, position_ids=None, seq_dim=-2):
         # MultiHeadAttentionLayer中qw是[btz, n_heads, seq_len, head_size]
-        # GlobalPointer中*转置*后qw是[btz, n_heads, seq_len, head_size]
+        # GlobalPointer中转置后qw是[btz, n_heads, seq_len, head_size]
         # EfficientGlobalPointer中qw是[btz, seq_len, head_size]
-        if self.rope_rank == 'adjacent':
+        if self.rope_rank == "adjacent":
             qw2 = torch.stack([-qw[..., 1::2], qw[..., ::2]], dim=-1).reshape_as(qw)
-        else:  # 目前仅chatglm使用
-            qw2 = torch.cat(
-                [-qw[..., qw.shape[-1] // 2:], qw[..., :qw.shape[-1] // 2]], dim=-1
-            )  # cat和stack+reshape是结果不同的
+        else:
+            qw2 = torch.cat([-qw[..., qw.shape[-1] // 2:], qw[..., :qw.shape[-1] // 2]], dim=-1)
 
         # 超过缓存长度
         seq_len = position_ids.max() + 1 if position_ids is not None else qw.shape[seq_dim]
         if seq_len > self.max_seq_len_cache:
             cos_position, sin_position = self.initialize(seq_len)
-            self.cos_position, self.sin_position = cos_position.type_as(qw).to(qw.device), sin_position.type_as(qw).to(
-                qw.device)
+            self.cos_position, self.sin_position = cos_position.type_as(qw).to(qw.device), sin_position.type_as(qw).to(qw.device)
             self.max_seq_len_cache = seq_len
 
         # 传入position_ids来获取cos和sin, 主要是在use_cache时候能直接取到对应位置的编码
@@ -72,7 +67,6 @@ class RoPEPositionEncoding(nn.Module):
 class EfficientGlobalPointer(nn.Module):
     """更加参数高效的GlobalPointer
     参考：https://kexue.fm/archives/8877
-    这里实现和GlobalPointer相似，而未采用原版的奇偶位来取qw和kw，个人理解两种方式是无区别的
     """
 
     def __init__(self, hidden_size, heads, head_size, use_rope=True, use_bias=True, tril_mask=True):
@@ -101,7 +95,7 @@ class EfficientGlobalPointer(nn.Module):
             kw = self.position_embedding(kw)
 
         # 计算内积
-        logits = torch.einsum('bmd,bnd->bmn', qw, kw) / self.head_size ** 0.5  # [btz, seq_len, seq_len], 是否是实体的打分
+        logits = torch.einsum("bmd,bnd->bmn", qw, kw) / self.head_size ** 0.5  # [btz, seq_len, seq_len], 是否是实体的打分
         bias_input = self.q_dense(sequence_output)  # [..., heads*2]
         bias = torch.stack(
             torch.chunk(bias_input, self.heads, dim=-1), dim=-2
@@ -112,8 +106,8 @@ class EfficientGlobalPointer(nn.Module):
         if mask is not None:
             attention_mask1 = 1 - mask.unsqueeze(1).unsqueeze(3)  # [btz, 1, seq_len, 1]
             attention_mask2 = 1 - mask.unsqueeze(1).unsqueeze(2)  # [btz, 1, 1, seq_len]
-            logits = logits.masked_fill(attention_mask1.bool(), value=-float('inf'))
-            logits = logits.masked_fill(attention_mask2.bool(), value=-float('inf'))
+            logits = logits.masked_fill(attention_mask1.bool(), value=-float("inf"))
+            logits = logits.masked_fill(attention_mask2.bool(), value=-float("inf"))
 
         # 排除下三角
         if self.tril_mask:

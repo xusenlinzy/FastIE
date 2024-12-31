@@ -111,3 +111,14 @@ from fastie import print_supported_models
 
 print_supported_models("event")
 ```
+
+### 实验结果（仅供参考）
+
+基座模型使用的是 [hfl/chinese-roberta-wwm-ext](https://huggingface.co/hfl/chinese-roberta-wwm-ext)
+
+|         模型          | precision | recall |   f1   |
+|:-------------------:|:---------:|:------:|:------:|
+| bert-gplinker-event |  65.29%   | 62.65% | 63.94% |
+
+
+以上均是验证集上的最好结果。

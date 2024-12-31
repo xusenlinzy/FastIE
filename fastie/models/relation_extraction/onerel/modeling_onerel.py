@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from typing import (
     Optional,
     List,
-    Any,
     Tuple,
+    Set,
 )
 
 import numpy as np
@@ -36,10 +36,10 @@ from .decode_utils import (
 class RelationExtractionOutput(ModelOutput):
     loss: Optional[torch.FloatTensor] = None
     logits: Optional[torch.FloatTensor] = None
-    predictions: List[Any] = None
-    groundtruths: List[Any] = None
-    hidden_states: Optional[Tuple[torch.FloatTensor]] = None
-    attentions: Optional[Tuple[torch.FloatTensor]] = None
+    predictions: List[Set[Tuple[str, str, str]]] = None
+    groundtruths: List[Set[Tuple[str, str, str]]] = None
+    hidden_states: Optional[Tuple[torch.FloatTensor, ...]] = None
+    attentions: Optional[Tuple[torch.FloatTensor, ...]] = None
 
 
 def get_base_model(config: "PretrainedConfig", **kwargs) -> "PreTrainedModel":
@@ -91,8 +91,8 @@ class OneRelForRelExtraction(PreTrainedModel, RelExtractionDecoder):
         inputs_embeds: Optional[torch.Tensor] = None,
         labels: Optional[torch.Tensor] = None,
         texts: Optional[List[str]] = None,
-        offset_mapping: Optional[List[Any]] = None,
-        target: Optional[List[Any]] = None,
+        offset_mapping: Optional[List[List[List[int]]]] = None,
+        target: Optional[List[Set[Tuple[str, str, str]]]] = None,
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
     ) -> RelationExtractionOutput:
@@ -151,8 +151,8 @@ class OneRelForRelExtraction(PreTrainedModel, RelExtractionDecoder):
         logits: torch.Tensor,
         masks: torch.Tensor,
         texts: List[str],
-        offset_mapping: List[Any],
-    ) -> List[set]:
+        offset_mapping: List[List[List[int]]],
+    ) -> List[Set[Tuple[str, str, str]]]:
         all_spo_list = []
         batch_size = logits.shape[0]
         masks = tensor_to_numpy(masks)

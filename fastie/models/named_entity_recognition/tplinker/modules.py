@@ -3,9 +3,9 @@ import torch.nn as nn
 
 
 class LayerNorm(nn.Module):
-    def __init__(self, hidden_size, eps=1e-12, conditional_size=False, bias=True, mode='normal'):
+    def __init__(self, hidden_size, eps=1e-12, conditional_size=False, bias=True, mode="normal"):
         """layernorm 层，这里自行实现，目的是为了兼容 conditianal layernorm，使得可以做条件文本生成、条件分类等任务
-           条件layernorm来自于苏剑林的想法，详情：https://spaces.ac.cn/archives/7124
+           条件layernorm来自https://spaces.ac.cn/archives/7124
         """
         super(LayerNorm, self).__init__()
         self.weight = nn.Parameter(torch.ones(hidden_size))
@@ -28,7 +28,7 @@ class LayerNorm(nn.Module):
     def forward(self, x):
         inputs = x[0]
 
-        if self.mode == 'rmsnorm':
+        if self.mode == "rmsnorm":
             # t5使用的是RMSnorm
             variance = inputs.to(torch.float32).pow(2).mean(-1, keepdim=True)
             o = inputs * torch.rsqrt(variance + self.eps)
@@ -37,7 +37,7 @@ class LayerNorm(nn.Module):
             s = (inputs - u).pow(2).mean(-1, keepdim=True)
             o = (inputs - u) / torch.sqrt(s + self.eps)
 
-        if not hasattr(self, 'bias'):
+        if not hasattr(self, "bias"):
             self.bias = 0
 
         if self.conditional_size:

@@ -2,7 +2,7 @@ import torch.nn as nn
 
 
 class SpanLoss(nn.Module):
-    def __init__(self, reduction='mean'):
+    def __init__(self, reduction="mean"):
         super().__init__()
         self.loss_fct = nn.CrossEntropyLoss(reduction=reduction)
 

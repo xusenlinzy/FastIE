@@ -77,6 +77,7 @@ def create_app(model: "PreTrainedModel", tokenizer: "PreTrainedTokenizer") -> "F
             request.texts,
             batch_size=request.batch_size,
             max_length=request.max_length,
+            language=request.language,
         )
         return response_model(model=model.config.architectures[0], labels=labels)
 

@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from typing import (
     Optional,
     List,
-    Any,
     Tuple,
+    Set,
 )
 
 import torch
@@ -39,10 +39,10 @@ from .modules import (
 class SequenceLabelingOutput(ModelOutput):
     loss: Optional[torch.FloatTensor] = None
     logits: torch.FloatTensor = None
-    predictions: List[Any] = None
-    groundtruths: List[Any] = None
-    hidden_states: Optional[Tuple[torch.FloatTensor]] = None
-    attentions: Optional[Tuple[torch.FloatTensor]] = None
+    predictions: Optional[List[Set[Tuple[str, int, int, str]]]] = None
+    groundtruths: Optional[List[Set[Tuple[str, int, int, str]]]] = None
+    hidden_states: Optional[Tuple[torch.FloatTensor, ...]] = None
+    attentions: Optional[Tuple[torch.FloatTensor, ...]] = None
 
 
 def get_base_model(config: "PretrainedConfig", **kwargs) -> "PreTrainedModel":
@@ -99,8 +99,8 @@ class TPLinkerForNer(PreTrainedModel, NerDecoder):
         inputs_embeds: Optional[torch.Tensor] = None,
         labels: Optional[torch.Tensor] = None,
         texts: Optional[List[str]] = None,
-        offset_mapping: Optional[List[Any]] = None,
-        target: Optional[List[Any]] = None,
+        offset_mapping: Optional[List[List[List[int]]]] = None,
+        target: Optional[List[Set[Tuple[str, int, int, str]]]] = None,
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
     ) -> SequenceLabelingOutput:
@@ -143,8 +143,8 @@ class TPLinkerForNer(PreTrainedModel, NerDecoder):
         shaking_logits: torch.Tensor,
         attention_mask: torch.Tensor,
         texts: List[str],
-        offset_mapping: List[Any],
-    ) -> List[set]:
+        offset_mapping: List[List[List[int]]],
+    ) -> List[Set[Tuple[str, int, int, str]]]:
         all_entity_list = []
         seq_len = attention_mask.shape[1]
         seqlens, shaking_logits = tensor_to_cpu(attention_mask.sum(1)), tensor_to_cpu(shaking_logits)
@@ -162,23 +162,15 @@ class TPLinkerForNer(PreTrainedModel, NerDecoder):
                 if e[0] > e[1] or 0 in [e[0], e[1]] or e[0] >= l - 1 or e[1] >= l - 1:
                     continue
                 _start, _end = mapping[e[0]][0], mapping[e[1]][1]
-                entities.add(
-                    (
-                        tag,
-                        _start,
-                        _end,
-                        text[_start: _end]
-                    )
-                )
+                entities.add((tag, _start, _end, text[_start: _end]))
             all_entity_list.append(entities)
-
         return all_entity_list
 
     def get_spots_fr_shaking_tag(
         self,
         shaking_idx2matrix_idx: List[Tuple[int, int]],
         shaking_outputs: torch.Tensor
-    ) -> List[Any]:
+    ) -> List[Tuple[int, int, int]]:
         """
         shaking_tag -> spots
         shaking_tag: (shaking_seq_len, tag_id)

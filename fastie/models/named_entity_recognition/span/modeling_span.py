@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from typing import (
     Optional,
     List,
-    Any,
     Tuple,
+    Set,
 )
 
 import torch
@@ -37,11 +37,10 @@ class SpanOutput(ModelOutput):
     loss: Optional[torch.FloatTensor] = None
     start_logits: torch.FloatTensor = None
     end_logits: torch.FloatTensor = None
-    span_logits: Optional[torch.FloatTensor] = None
-    predictions: List[Any] = None
-    groundtruths: List[Any] = None
-    hidden_states: Optional[Tuple[torch.FloatTensor]] = None
-    attentions: Optional[Tuple[torch.FloatTensor]] = None
+    predictions: Optional[List[Set[Tuple[str, int, int, str]]]] = None
+    groundtruths: Optional[List[Set[Tuple[str, int, int, str]]]] = None
+    hidden_states: Optional[Tuple[torch.FloatTensor, ...]] = None
+    attentions: Optional[Tuple[torch.FloatTensor, ...]] = None
 
 
 def get_base_model(config: "PretrainedConfig", **kwargs) -> "PreTrainedModel":
@@ -93,8 +92,8 @@ class SpanForNer(PreTrainedModel, NerDecoder):
         start_positions: Optional[torch.Tensor] = None,
         end_positions: Optional[torch.Tensor] = None,
         texts: Optional[List[str]] = None,
-        offset_mapping: Optional[List[Any]] = None,
-        target: Optional[List[Any]] = None,
+        offset_mapping: Optional[List[List[List[int]]]] = None,
+        target: Optional[List[Set[Tuple[str, int, int, str]]]] = None,
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
     ) -> SpanOutput:
@@ -140,8 +139,8 @@ class SpanForNer(PreTrainedModel, NerDecoder):
         end_logits: torch.Tensor,
         masks: torch.Tensor,
         texts: List[str],
-        offset_mapping: List[Any],
-    ) -> List[set]:
+        offset_mapping: List[List[List[int]]],
+    ) -> List[Set[Tuple[str, int, int, str]]]:
         start_labels, end_labels = torch.argmax(start_logits, -1), torch.argmax(end_logits, -1)
         start_labels, end_labels = tensor_to_cpu(start_labels), tensor_to_cpu(end_labels)
         id2label = self.config.id2label
@@ -161,12 +160,7 @@ class SpanForNer(PreTrainedModel, NerDecoder):
                         continue
                     if s == e:
                         _start, _end = mapping[i][0], mapping[i + j][1]
-                        decode_label.add((
-                            id2label[s],
-                            _start,
-                            _end,
-                            text[_start: _end])
-                        )
+                        decode_label.add((id2label[s], _start, _end, text[_start: _end]))
                         break
             decode_labels.append(decode_label)
         return decode_labels

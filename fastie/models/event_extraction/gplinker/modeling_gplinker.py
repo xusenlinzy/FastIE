@@ -3,7 +3,6 @@ from itertools import groupby
 from typing import (
     Optional,
     List,
-    Any,
     Tuple,
 )
 
@@ -42,10 +41,10 @@ from .modules import (
 class RelationExtractionOutput(ModelOutput):
     loss: Optional[torch.FloatTensor] = None
     logits: Optional[torch.FloatTensor] = None
-    predictions: List[Any] = None
-    groundtruths: List[Any] = None
-    hidden_states: Optional[Tuple[torch.FloatTensor]] = None
-    attentions: Optional[Tuple[torch.FloatTensor]] = None
+    predictions: Optional[List[List[List[Tuple[str, str, str, int, int]]]]] = None
+    groundtruths: Optional[List[List[List[Tuple[str, str, str, int, int]]]]] = None
+    hidden_states: Optional[Tuple[torch.FloatTensor, ...]] = None
+    attentions: Optional[Tuple[torch.FloatTensor, ...]] = None
 
 
 def get_base_model(config: "PretrainedConfig", **kwargs) -> "PreTrainedModel":
@@ -112,8 +111,8 @@ class GPLinkerForEventExtraction(PreTrainedModel, EventExtractionDecoder):
         head_labels: Optional[torch.Tensor] = None,
         tail_labels: Optional[torch.Tensor] = None,
         texts: Optional[List[str]] = None,
-        offset_mapping: Optional[List[Any]] = None,
-        target: Optional[List[Any]] = None,
+        offset_mapping: Optional[List[List[List[int]]]] = None,
+        target: Optional[List[List[List[Tuple[str, str, str, int, int]]]]] = None,
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
     ) -> RelationExtractionOutput:
@@ -165,8 +164,8 @@ class GPLinkerForEventExtraction(PreTrainedModel, EventExtractionDecoder):
         tail_logits: torch.Tensor,
         masks: torch.Tensor,
         texts: List[str],
-        offset_mapping: List[Any],
-    ) -> List[Any]:
+        offset_mapping: List[List[List[int]]],
+    ) -> List[List[List[Tuple[str, str, str, int, int]]]]:
         all_event_list = []
         batch_size = argu_logits.shape[0]
         masks = tensor_to_numpy(masks)
@@ -208,15 +207,7 @@ class GPLinkerForEventExtraction(PreTrainedModel, EventExtractionDecoder):
                     events.append([])
                     for argu in event:
                         start, end = mapping[argu[2]][0], mapping[argu[3]][1]
-                        events[-1].append(
-                            (
-                                argu[0],
-                                argu[1],
-                                text[start: end],
-                                start,
-                                end
-                            )
-                        )
+                        events[-1].append((argu[0], argu[1], text[start: end], start, end))
                     if self.has_trigger and all([argu[1] != "触发词" for argu in event]):
                         events.pop()
 

@@ -37,7 +37,12 @@ def evaluate():
         args.model_name_or_path, trust_remote_code=True, device_map=args.device
     )
     predictions = model.predict(
-        tokenizer, texts, batch_size=args.batch_size, max_length=args.max_seq_len
+        tokenizer,
+        texts,
+        batch_size=args.batch_size,
+        max_length=args.max_seq_len,
+        show_progress_bar=True,
+        device=args.device,
     )
     res = []
     for pred in predictions:
@@ -128,7 +133,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "-D",
         "--device",
-        choices=['cpu', 'cuda'],
         default="cpu",
         help="Select which device to run model, defaults to gpu."
     )

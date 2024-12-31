@@ -66,6 +66,14 @@ def process_train(ds: "Dataset", predicate2id: dict):
     return ds.filter(judge).map(convert)
 
 
+def log_dataset_samples(dataset: "Dataset", dataset_name: str) -> None:
+    sample_index = random.randint(0, len(dataset) - 1)
+    logger.info(f"Length of {dataset_name} set: {len(dataset)}")
+    logger.info(f"Sample {sample_index} of the {dataset_name} set:")
+    for key, value in dataset[sample_index].items():
+        logger.info(f"{key} = {value}")
+
+
 def load_rel_train_dev_dataset(
     tokenizer: "PreTrainedTokenizer",
     dataset_dir: Union[str, Path],
@@ -149,16 +157,7 @@ def load_rel_train_dev_dataset(
         num_proc=num_workers if num_workers else None,
     )
 
-    for index in random.sample(range(len(train_dataset)), 1):
-        logger.info(f"Length of training set: {len(train_dataset)}")
-        logger.info(f"Sample {index} of the training set:")
-        for k, v in train_dataset[index].items():
-            logger.info(f"{k} = {v}")
-
-    for index in random.sample(range(len(val_dataset)), 1):
-        logger.info(f"Length of validation set: {len(val_dataset)}")
-        logger.info(f"Sample {index} of the validation set:")
-        for k, v in val_dataset[index].items():
-            logger.info(f"{k} = {v}")
+    log_dataset_samples(train_dataset, "training")
+    log_dataset_samples(val_dataset, "validation")
 
     return train_dataset, val_dataset, labels

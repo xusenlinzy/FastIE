@@ -19,15 +19,16 @@ from transformers.file_utils import PaddingStrategy
 from transformers.tokenization_utils import BatchEncoding
 
 
-def batchify_rel_labels(batch, features, return_offset_mapping=False):
+def batchify_rel_labels(
+    batch: BatchEncoding, features: List[Dict[str, Any]], return_offset_mapping: bool = False
+) -> BatchEncoding:
     """ 关系抽取验证集标签处理 """
     if "text" in features[0].keys():
         batch["texts"] = [feature.pop("text") for feature in features]
     if "target" in features[0].keys():
-        batch['target'] = [{tuple(t) for t in feature.pop("target")} for feature in features]
+        batch["target"] = [{tuple(t) for t in feature.pop("target")} for feature in features]
     if return_offset_mapping and "offset_mapping" in features[0].keys():
         batch["offset_mapping"] = [feature.pop("offset_mapping") for feature in features]
-
     return batch
 
 
@@ -41,7 +42,7 @@ class DataCollatorForGRTE:
     num_labels: Optional[int] = None
     ignore_list: Optional[List[str]] = None
 
-    def __call__(self, features: List[Dict[str, Any]]) -> Mapping:
+    def __call__(self, features: List[Dict[str, Any]]) -> BatchEncoding:
         labels = ([feature.pop("labels") for feature in features] if "labels" in features[0].keys() else None)
         new_features = [{k: v for k, v in f.items() if k not in self.ignore_list} for f in features]
 
@@ -90,7 +91,7 @@ class GrteForRelTokenizer(PreTrainedTokenizerBase):
     def convert_to_features(
         self,
         examples: Mapping,
-        label_to_id: dict,
+        label_to_id: Dict[str, int],
         max_length: int = 256,
         text_column_name: str = "text",
         label_column_name: str = "entities",

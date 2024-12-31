@@ -1,3 +1,11 @@
+from typing import (
+    List,
+    Tuple,
+    Dict,
+    Literal,
+    Set,
+)
+
 from .precision_recall_fscore import (
     _precision_recall_fscore,
     extract_tp_actual_correct,
@@ -12,17 +20,17 @@ class ExtractionScore(Metric):
         self.average = average
         self.reset()
 
-    def update(self, y_true, y_pred):
+    def update(self, y_true: List[Set[Tuple[str, int, int, str]]], y_pred: List[Set[Tuple[str, int, int, str]]]):
         pred_sum, tp_sum, true_sum = extract_tp_actual_correct(y_true, y_pred)
         self.pred_sum += pred_sum
         self.tp_sum += tp_sum
         self.true_sum += true_sum
 
-    def value(self):
+    def value(self) -> Dict[Literal["precision", "recall", "f1"], float]:
         precision, recall, f1 = _precision_recall_fscore(self.pred_sum, self.tp_sum, self.true_sum)
         return {"precision": precision, "recall": recall, "f1": f1}
 
-    def name(self):
+    def name(self) -> str:
         return "extraction_score"
 
     def reset(self):
@@ -36,7 +44,11 @@ class EventExtractionScore(Metric):
     def __init__(self):
         self.reset()
 
-    def update(self, y_true, y_pred):
+    def update(
+        self,
+        y_true: List[List[List[Tuple[str, str, str, int, int]]]],
+        y_pred: List[List[List[Tuple[str, str, str, int, int]]]]
+    ):
         y_true = [[[tuple(j[:3]) for j in i] for i in d] for d in y_true]
         y_pred = [[[tuple(j[:3]) for j in i] for i in d] for d in y_pred]
         ex, ey, ez, ax, ay, az = extract_tp_actual_correct_for_event(y_true, y_pred)
@@ -48,7 +60,7 @@ class EventExtractionScore(Metric):
         self.ay += ay
         self.az += az
 
-    def value(self):
+    def value(self) -> Dict[Literal["event_precision", "event_recall", "event_f1", "argu_precision", "argu_recall", "argu_f1"], float]:
         event_score = _precision_recall_fscore(self.ey, self.ex, self.ez)
         argu_score = _precision_recall_fscore(self.ay, self.ax, self.az)
 
@@ -61,7 +73,7 @@ class EventExtractionScore(Metric):
             "argu_f1": argu_score[2],
         }
 
-    def name(self):
+    def name(self) -> str:
         return "event_extraction_score"
 
     def reset(self):

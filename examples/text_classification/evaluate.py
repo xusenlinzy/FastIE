@@ -19,7 +19,7 @@ def evaluate():
 
     tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path)
     model = AutoModel.from_pretrained(
-        args.model_name_or_path, trust_remote_code=True, device_map=args.device
+        args.model_name_or_path, trust_remote_code=True,
     )
     predictions = model.predict(
         tokenizer,
@@ -27,6 +27,8 @@ def evaluate():
         text_b=texts_b if texts_b else None,
         batch_size=args.batch_size,
         max_length=args.max_seq_len,
+        show_progress_bar=True,
+        device=args.device,
     )
 
     print(classification_report(labels, predictions))
@@ -60,7 +62,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "-D",
         "--device",
-        choices=['cpu', 'cuda'],
         default="cpu",
         help="Select which device to run model, defaults to gpu."
     )

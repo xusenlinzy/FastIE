@@ -5,6 +5,7 @@ from typing import (
     List,
     Any,
     Tuple,
+    Set,
 )
 
 import torch
@@ -40,10 +41,10 @@ from .modules import (
 class RelationExtractionOutput(ModelOutput):
     loss: Optional[torch.FloatTensor] = None
     logits: Optional[torch.FloatTensor] = None
-    predictions: List[Any] = None
-    groundtruths: List[Any] = None
-    hidden_states: Optional[Tuple[torch.FloatTensor]] = None
-    attentions: Optional[Tuple[torch.FloatTensor]] = None
+    predictions: List[Set[Tuple[str, str, str]]] = None
+    groundtruths: List[Set[Tuple[str, str, str]]] = None
+    hidden_states: Optional[Tuple[torch.FloatTensor, ...]] = None
+    attentions: Optional[Tuple[torch.FloatTensor, ...]] = None
 
 
 def get_base_model(config: "PretrainedConfig", **kwargs) -> "PreTrainedModel":
@@ -111,8 +112,8 @@ class TPLinkerForRelExtraction(PreTrainedModel, RelExtractionDecoder):
         inputs_embeds: Optional[torch.Tensor] = None,
         labels: Optional[torch.Tensor] = None,
         texts: Optional[List[str]] = None,
-        offset_mapping: Optional[List[Any]] = None,
-        target: Optional[List[Any]] = None,
+        offset_mapping: Optional[List[List[List[int]]]] = None,
+        target: Optional[List[Set[Tuple[str, str, str]]]] = None,
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
     ) -> RelationExtractionOutput:
@@ -155,8 +156,8 @@ class TPLinkerForRelExtraction(PreTrainedModel, RelExtractionDecoder):
         shaking_logits: torch.Tensor,
         attention_mask: torch.Tensor,
         texts: List[str],
-        offset_mapping: List[Any],
-    ) -> List[set]:
+        offset_mapping: List[List[List[int]]],
+    ) -> List[Set[Tuple[str, str, str]]]:
         all_spo_list = []
         seq_len = attention_mask.shape[1]
         seqlens, shaking_logits = tensor_to_cpu(attention_mask.sum(1)), tensor_to_cpu(shaking_logits)

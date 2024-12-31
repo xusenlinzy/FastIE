@@ -2,6 +2,8 @@ from typing import (
     Optional,
     Callable,
     Mapping,
+    Dict,
+    Any,
 )
 
 import numpy as np
@@ -18,14 +20,14 @@ class CnnNerTokenizer(PreTrainedTokenizerBase):
     def convert_to_features(
         self,
         examples: Mapping,
-        label_to_id: dict,
+        label_to_id: Dict[str, int],
         max_length: int = 256,
         text_column_name: str = "text",
         label_column_name: str = "entities",
         mode: str = "train",
         is_chinese: bool = True,
         with_indices: bool = False,
-    ) -> dict:
+    ) -> Dict[str, Any]:
         # 英文文本使用空格分隔单词，BertTokenizer不对空格tokenize
         sentences = list(examples[text_column_name])
         if is_chinese:

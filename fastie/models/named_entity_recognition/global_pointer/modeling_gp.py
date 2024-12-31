@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from typing import (
     Optional,
     List,
-    Any,
     Tuple,
+    Set,
 )
 
 import numpy as np
@@ -42,10 +42,10 @@ from .modules import (
 class SequenceLabelingOutput(ModelOutput):
     loss: Optional[torch.FloatTensor] = None
     logits: torch.FloatTensor = None
-    predictions: List[Any] = None
-    groundtruths: List[Any] = None
-    hidden_states: Optional[Tuple[torch.FloatTensor]] = None
-    attentions: Optional[Tuple[torch.FloatTensor]] = None
+    predictions: Optional[List[Set[Tuple[str, int, int, str]]]] = None
+    groundtruths: Optional[List[Set[Tuple[str, int, int, str]]]] = None
+    hidden_states: Optional[Tuple[torch.FloatTensor, ...]] = None
+    attentions: Optional[Tuple[torch.FloatTensor, ...]] = None
 
 
 def get_base_model(config: "PretrainedConfig", **kwargs) -> "PreTrainedModel":
@@ -110,8 +110,8 @@ class GlobalPointerForNer(PreTrainedModel, NerDecoder):
         inputs_embeds: Optional[torch.Tensor] = None,
         labels: Optional[torch.Tensor] = None,
         texts: Optional[List[str]] = None,
-        offset_mapping: Optional[List[Any]] = None,
-        target: Optional[List[Any]] = None,
+        offset_mapping: Optional[List[List[List[int]]]] = None,
+        target: Optional[List[Set[Tuple[str, int, int, str]]]] = None,
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
     ) -> SequenceLabelingOutput:
@@ -131,7 +131,7 @@ class GlobalPointerForNer(PreTrainedModel, NerDecoder):
 
         loss, predictions = None, None
         if labels is not None:
-            sparse = getattr(self.config, 'is_sparse', False)
+            sparse = getattr(self.config, "is_sparse", False)
             loss = self.compute_loss([logits, labels, attention_mask], sparse=sparse)
 
         if not self.training:  # 训练时无需解码
@@ -151,17 +151,15 @@ class GlobalPointerForNer(PreTrainedModel, NerDecoder):
         logits: torch.Tensor,
         masks: torch.Tensor,
         texts: List[str],
-        offset_mapping: List[Any],
-    ) -> List[set]:
+        offset_mapping: List[List[List[int]]],
+    ) -> List[Set[Tuple[str, int, int, str]]]:
         all_entity_list = []
         seq_lens, logits = tensor_to_cpu(masks.sum(1)), tensor_to_cpu(logits).float()
         id2label = self.config.id2label
-
         decode_thresh = getattr(self.config, "decode_thresh", 0.0)
         for _logits, l, text, mapping in zip(logits, seq_lens, texts, offset_mapping):
             entity_list = set()
             l = l.item()
-
             for label_id, start_idx, end_idx in zip(*torch.where(_logits > decode_thresh)):
                 label_id, start_idx, end_idx = label_id.item(), start_idx.item(), end_idx.item()
                 if start_idx >= (l - 1) or end_idx >= (l - 1) or 0 in [start_idx, end_idx]:
@@ -170,7 +168,6 @@ class GlobalPointerForNer(PreTrainedModel, NerDecoder):
                 _start, _end = mapping[start_idx][0], mapping[end_idx][1]
                 entity_list.add((label, _start, _end, text[_start: _end]))
             all_entity_list.append(set(entity_list))
-
         return all_entity_list
 
     def compute_loss(self, inputs, sparse=True):

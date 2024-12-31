@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from typing import (
     Optional,
     List,
-    Any,
     Tuple,
+    Set,
 )
 
 import torch
@@ -46,11 +46,11 @@ if _is_package_available("torch_scatter"):
 @dataclass
 class SequenceLabelingOutput(ModelOutput):
     loss: Optional[torch.FloatTensor] = None
-    logits: torch.FloatTensor = None
-    predictions: List[Any] = None
-    groundtruths: List[Any] = None
-    hidden_states: Optional[Tuple[torch.FloatTensor]] = None
-    attentions: Optional[Tuple[torch.FloatTensor]] = None
+    logits: Optional[torch.FloatTensor] = None
+    predictions: Optional[List[Set[Tuple[str, int, int, str]]]] = None
+    groundtruths: Optional[List[Set[Tuple[str, int, int, str]]]] = None
+    hidden_states: Optional[Tuple[torch.FloatTensor, ...]] = None
+    attentions: Optional[Tuple[torch.FloatTensor, ...]] = None
 
 
 def get_base_model(config: "PretrainedConfig", **kwargs) -> "PreTrainedModel":
@@ -140,7 +140,7 @@ class CnnForNer(PreTrainedModel, NerDecoder):
         indexes: Optional[torch.Tensor] = None,
         labels: Optional[torch.Tensor] = None,
         texts: Optional[List[str]] = None,
-        target: Optional[List[Any]] = None,
+        target: Optional[List[Set[Tuple[str, int, int, str]]]] = None,
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
     ) -> SequenceLabelingOutput:
@@ -231,7 +231,7 @@ class CnnForNer(PreTrainedModel, NerDecoder):
         lengths: List[int],
         allow_nested: bool = True,
         thresh: float = 0.5,
-    ) -> List[set]:
+    ) -> List[Set[Tuple[int, int, str]]]:
         batch_chunks = []
         for idx, (_scores, l) in enumerate(zip(scores, lengths)):
             curr_non_mask = scores.new_ones(l, l, dtype=bool).triu()
@@ -239,8 +239,10 @@ class CnnForNer(PreTrainedModel, NerDecoder):
 
             confidences, label_ids = tmp_scores, tmp_scores >= thresh
             labels = list(label_ids)
-            chunks = [(label, start, end) for label, (start, end) in
-                      zip(labels, self.spans_from_upper_triangular(l)) if label != 0]
+            chunks = [
+                (label, start, end) for label, (start, end) in
+                zip(labels, self.spans_from_upper_triangular(l)) if label != 0
+            ]
             confidences = [conf for label, conf in zip(labels, confidences) if label != 0]
 
             assert len(confidences) == len(chunks)
@@ -254,7 +256,7 @@ class CnnForNer(PreTrainedModel, NerDecoder):
 
     def decode(
         self, scores: torch.Tensor, lengths: torch.Tensor, texts: List[str]
-    ) -> List[set]:
+    ) -> List[Set[Tuple[str, int, int, str]]]:
         all_entity_list = []
         scores, lengths = tensor_to_cpu(torch.sigmoid(scores)), tensor_to_list(lengths)
         scores = (scores + scores.transpose(1, 2)) / 2
@@ -273,7 +275,6 @@ class CnnForNer(PreTrainedModel, NerDecoder):
                 if score[_type] >= decode_thresh:
                     entity_set.add((id2label[_type.item()], s, e + 1, text[s: e + 1]))
             all_entity_list.append(entity_set)
-
         return all_entity_list
 
 

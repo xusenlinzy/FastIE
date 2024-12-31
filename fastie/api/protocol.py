@@ -27,6 +27,7 @@ class IECreateParams(BaseModel):
     ie_schema: Optional[Any] = None
     batch_size: Optional[int] = 16
     max_length: Optional[int] = 512
+    language: Optional[str] = "zh"
 
 
 class CLSResponse(BaseModel):

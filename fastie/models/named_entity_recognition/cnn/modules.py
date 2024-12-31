@@ -81,5 +81,5 @@ class MultiHeadBiaffine(nn.Module):
         bsz, max_len, dim = h.size()
         h = h.reshape(bsz, max_len, self.num_heads, -1)
         v = v.reshape(bsz, max_len, self.num_heads, -1)
-        w = torch.einsum('blhx, hdxy, bkhy -> bhdlk', h, self.W, v)
+        w = torch.einsum("blhx, hdxy, bkhy -> bhdlk", h, self.W, v)
         return w.reshape(bsz, self.out_size, max_len, max_len)

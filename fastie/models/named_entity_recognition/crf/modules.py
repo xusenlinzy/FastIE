@@ -29,7 +29,7 @@ class CRF(nn.Module):
 
     def __init__(self, num_tags: int, batch_first: bool = False) -> None:
         if num_tags <= 0:
-            raise ValueError(f'invalid number of tags: {num_tags}')
+            raise ValueError(f"invalid number of tags: {num_tags}")
         super().__init__()
         self.num_tags = num_tags
         self.batch_first = batch_first
@@ -50,14 +50,14 @@ class CRF(nn.Module):
         nn.init.uniform_(self.transitions, -0.1, 0.1)
 
     def __repr__(self) -> str:
-        return f'{self.__class__.__name__}(num_tags={self.num_tags})'
+        return f"{self.__class__.__name__}(num_tags={self.num_tags})"
 
     def forward(
         self,
         emissions: torch.Tensor,
         tags: torch.LongTensor,
         mask: Optional[torch.ByteTensor] = None,
-        reduction: str = 'mean',
+        reduction: str = "mean",
     ) -> torch.Tensor:
         """Compute the conditional log likelihood of a sequence of tags given emission scores.
         Args:
@@ -77,8 +77,8 @@ class CRF(nn.Module):
             `~torch.Tensor`: The log likelihood. This will have size ``(batch_size,)`` if
             reduction is ``none``, ``()`` otherwise.
         """
-        if reduction not in ('none', 'sum', 'mean', 'token_mean'):
-            raise ValueError(f'invalid reduction: {reduction}')
+        if reduction not in ("none", "sum", "mean", "token_mean"):
+            raise ValueError(f"invalid reduction: {reduction}")
         if mask is None:
             mask = torch.ones_like(tags, dtype=torch.uint8, device=tags.device)
         if mask.dtype != torch.uint8:
@@ -97,11 +97,11 @@ class CRF(nn.Module):
         # shape: (batch_size,)
         llh = numerator - denominator
 
-        if reduction == 'none':
+        if reduction == "none":
             return llh
-        if reduction == 'sum':
+        if reduction == "sum":
             return llh.sum()
-        if reduction == 'mean':
+        if reduction == "mean":
             return llh.mean()
         return llh.sum() / mask.float().sum()
 
@@ -150,30 +150,28 @@ class CRF(nn.Module):
         mask: Optional[torch.ByteTensor] = None,
     ) -> None:
         if emissions.dim() != 3:
-            raise ValueError(
-                f'emissions must have dimension of 3, got {emissions.dim()}')
+            raise ValueError(f"Emissions must have dimension of 3, got {emissions.dim()}")
         if emissions.size(2) != self.num_tags:
             raise ValueError(
-                f'expected last dimension of emissions is {self.num_tags}, '
-                f'got {emissions.size(2)}')
+                f"Expected last dimension of emissions is {self.num_tags}, got {emissions.size(2)}")
 
         if tags is not None:
             if emissions.shape[:2] != tags.shape:
                 raise ValueError(
-                    'the first two dimensions of emissions and tags must match, '
-                    f'got {tuple(emissions.shape[:2])} and {tuple(tags.shape)}'
+                    "The first two dimensions of emissions and tags must match, "
+                    f"got {tuple(emissions.shape[:2])} and {tuple(tags.shape)}"
                 )
 
         if mask is not None:
             if emissions.shape[:2] != mask.shape:
                 raise ValueError(
-                    'the first two dimensions of emissions and mask must match, '
-                    f'got {tuple(emissions.shape[:2])} and {tuple(mask.shape)}'
+                    "The first two dimensions of emissions and mask must match, "
+                    f"got {tuple(emissions.shape[:2])} and {tuple(mask.shape)}"
                 )
             no_empty_seq = not self.batch_first and mask[0].all()
             no_empty_seq_bf = self.batch_first and mask[:, 0].all()
             if not no_empty_seq and not no_empty_seq_bf:
-                raise ValueError('mask of the first timestep must all be on')
+                raise ValueError("mask of the first timestep must all be on")
 
     def _compute_score(
         self,

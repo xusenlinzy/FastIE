@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from typing import (
     Optional,
     List,
-    Any,
     Tuple,
+    Set,
 )
 
 import torch
@@ -40,10 +40,10 @@ from .modules import CRF
 class SequenceLabelingOutput(ModelOutput):
     loss: Optional[torch.FloatTensor] = None
     logits: torch.FloatTensor = None
-    predictions: List[Any] = None
-    groundtruths: List[Any] = None
-    hidden_states: Optional[Tuple[torch.FloatTensor]] = None
-    attentions: Optional[Tuple[torch.FloatTensor]] = None
+    predictions: Optional[List[Set[Tuple[str, int, int, str]]]] = None
+    groundtruths: Optional[List[Set[Tuple[str, int, int, str]]]] = None
+    hidden_states: Optional[Tuple[torch.FloatTensor, ...]] = None
+    attentions: Optional[Tuple[torch.FloatTensor, ...]] = None
 
 
 def get_base_model(config: "PretrainedConfig", **kwargs) -> "PreTrainedModel":
@@ -98,6 +98,7 @@ class CrfForNer(PreTrainedModel, NerDecoder):
         schemas = sorted(config.schemas)
         bio_labels = ["O"] + [f"B-{l}" for l in schemas] + [f"I-{l}" for l in schemas]
         config.id2label = {int(i): l for i, l in enumerate(bio_labels)}
+        config.label2id = {l: int(i) for i, l in enumerate(bio_labels)}
         return config
 
     def forward(
@@ -110,8 +111,8 @@ class CrfForNer(PreTrainedModel, NerDecoder):
         inputs_embeds: Optional[torch.Tensor] = None,
         labels: Optional[torch.Tensor] = None,
         texts: Optional[List[str]] = None,
-        offset_mapping: Optional[List[Any]] = None,
-        target: Optional[List[Any]] = None,
+        offset_mapping: Optional[List[List[List[int]]]] = None,
+        target: Optional[List[Set[Tuple[str, int, int, str]]]] = None,
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
     ) -> SequenceLabelingOutput:
@@ -154,8 +155,8 @@ class CrfForNer(PreTrainedModel, NerDecoder):
         logits: torch.Tensor,
         masks: torch.Tensor,
         texts: List[str],
-        offset_mapping: List[Any],
-    ) -> List[set]:
+        offset_mapping: List[List[List[int]]],
+    ) -> List[Set[Tuple[str, int, int, str]]]:
         decode_ids = self.crf.decode(logits, masks.bool()).squeeze(0)  # (batch_size, seq_length)
         decode_ids, masks = tensor_to_cpu(decode_ids), tensor_to_cpu(masks)
         id2label = self.config.id2label
@@ -178,7 +179,6 @@ class CrfForNer(PreTrainedModel, NerDecoder):
         return decode_labels
 
     def compute_loss(self, inputs):
-
         logits, labels, mask = inputs[:3]
         return -1 * self.crf(emissions=logits, tags=labels, mask=mask.bool())
 
@@ -228,8 +228,8 @@ class CascadeCrfForNer(PreTrainedModel, NerDecoder):
         entity_ids: Optional[torch.Tensor] = None,
         entity_labels: Optional[torch.Tensor] = None,
         texts: Optional[List[str]] = None,
-        offset_mapping: Optional[List[Any]] = None,
-        target: Optional[List[Any]] = None,
+        offset_mapping: Optional[List[List[List[int]]]] = None,
+        target: Optional[List[Set[Tuple[str, int, int, str]]]] = None,
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
     ) -> SequenceLabelingOutput:
@@ -283,8 +283,8 @@ class CascadeCrfForNer(PreTrainedModel, NerDecoder):
         logits: torch.Tensor,
         masks: torch.Tensor,
         texts: List[str],
-        offset_mapping: List[Any],
-    ) -> List[set]:
+        offset_mapping: List[List[List[int]]],
+    ) -> List[Set[Tuple[str, int, int, str]]]:
         decode_ids = self.crf.decode(logits, masks.bool()).squeeze(0)  # (batch_size, seq_length)
         decode_ids, masks = tensor_to_cpu(decode_ids), tensor_to_cpu(masks)
         BIO_MAP = getattr(self.config, "BIO_MAP", {0: "O", 1: "B-ENT", 2: "I-ENT"})
@@ -311,9 +311,7 @@ class CascadeCrfForNer(PreTrainedModel, NerDecoder):
                 s, e, p = ent[0].item(), ent[1].item(), entity_preds[i][j].item()
                 if s * e * p != 0:
                     _start, _end = mapping[s][0], mapping[e][1]
-                    tmp.add((
-                        id2label[p], _start, _end, text[_start: _end]
-                    ))
+                    tmp.add((id2label[p], _start, _end, text[_start: _end]))
             decode_labels.append(tmp)
 
         return decode_labels

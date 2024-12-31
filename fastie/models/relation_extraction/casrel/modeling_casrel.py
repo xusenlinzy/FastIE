@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from typing import (
     Optional,
     List,
-    Any,
     Tuple,
+    Set,
 )
 
 import torch
@@ -25,9 +25,7 @@ from .configuration import (
     BertCasrelRelConfig,
     RoFormerCasrelRelConfig,
 )
-from .decode_utils import (
-    RelExtractionDecoder,
-)
+from .decode_utils import RelExtractionDecoder
 from .modules import LayerNorm
 
 
@@ -35,10 +33,10 @@ from .modules import LayerNorm
 class RelationExtractionOutput(ModelOutput):
     loss: Optional[torch.FloatTensor] = None
     logits: Optional[torch.FloatTensor] = None
-    predictions: List[Any] = None
-    groundtruths: List[Any] = None
-    hidden_states: Optional[Tuple[torch.FloatTensor]] = None
-    attentions: Optional[Tuple[torch.FloatTensor]] = None
+    predictions: List[Set[Tuple[str, str, str]]] = None
+    groundtruths: List[Set[Tuple[str, str, str]]] = None
+    hidden_states: Optional[Tuple[torch.FloatTensor, ...]] = None
+    attentions: Optional[Tuple[torch.FloatTensor, ...]] = None
 
 
 def get_base_model(config: "PretrainedConfig", **kwargs) -> "PreTrainedModel":
@@ -107,8 +105,8 @@ class CasrelForRelExtraction(PreTrainedModel, RelExtractionDecoder):
         subject_labels: Optional[torch.Tensor] = None,
         object_labels: Optional[torch.Tensor] = None,
         texts: Optional[List[str]] = None,
-        offset_mapping: Optional[List[Any]] = None,
-        target: Optional[List[Any]] = None,
+        offset_mapping: Optional[List[List[List[int]]]] = None,
+        target: Optional[List[Set[Tuple[str, str, str]]]] = None,
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
     ) -> RelationExtractionOutput:
@@ -187,8 +185,8 @@ class CasrelForRelExtraction(PreTrainedModel, RelExtractionDecoder):
         texts: List[str],
         sequence_output: torch.Tensor,
         attention_mask: torch.Tensor,
-        offset_mapping: List[Any],
-    ) -> List[set]:
+        offset_mapping: List[List[List[int]]],
+    ) -> List[Set[Tuple[str, str, str]]]:
         """ 解码出批量中每个句子中的三元组 """
         # [batch_size, seq_len, 2]
         subject_preds = torch.sigmoid(self.subject_tagger(sequence_output))
@@ -220,9 +218,7 @@ class CasrelForRelExtraction(PreTrainedModel, RelExtractionDecoder):
             decode_labels.append(spoes)
         return decode_labels
 
-    def extract_spoes(
-        self, subjects, object_preds, masks, text, mapping
-    ) -> set:
+    def extract_spoes(self, subjects, object_preds, masks, text, mapping) -> set:
         """ 单个句子抽取三元组
         """
         start_thresh = getattr(self.config, "start_thresh", 0.5)
@@ -242,9 +238,7 @@ class CasrelForRelExtraction(PreTrainedModel, RelExtractionDecoder):
                         label = id2predicate[predicate1]
                         s_h, s_t = mapping[subject[0].item()][0], mapping[subject[1].item()][1]
                         o_h, o_t = mapping[_start][0], mapping[_end][1]
-                        spoes.add(
-                            (label, text[s_h: s_t], text[o_h: o_t])
-                        )
+                        spoes.add((label, text[s_h: s_t], text[o_h: o_t]))
                         break  # 就近原则
         return spoes
 

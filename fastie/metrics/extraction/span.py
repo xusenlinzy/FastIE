@@ -1,7 +1,21 @@
+from typing import (
+    List,
+    Tuple,
+    Dict,
+    Literal,
+    Set,
+    Union,
+)
+
 import numpy as np
+import torch
 
 
-def get_span(start_ids, end_ids, with_prob=False):
+def get_span(
+    start_ids: Union[List[int], List[Tuple[int, float]]],
+    end_ids: Union[List[int], List[Tuple[int, float]]],
+    with_prob: bool = False
+) -> Set[Tuple[int, int]]:
     """
     Get span set from position start and end list.
     Args:
@@ -53,7 +67,9 @@ def get_span(start_ids, end_ids, with_prob=False):
     return result
 
 
-def get_bool_ids_greater_than(probs, limit=0.5, return_prob=False):
+def get_bool_ids_greater_than(
+    probs: List[List[float]], limit: float = 0.5, return_prob: bool = False
+) -> List[List[int]]:
     """
     Get idx of the last dimension in probability arrays, which is greater than a limitation.
     Args:
@@ -92,7 +108,13 @@ class SpanEvaluator(object):
         self.num_label_spans = 0
         self.num_correct_spans = 0
 
-    def compute(self, start_probs, end_probs, gold_start_ids, gold_end_ids):
+    def compute(
+        self,
+        start_probs: List[List[float]],
+        end_probs: List[List[float]],
+        gold_start_ids: torch.Tensor,
+        gold_end_ids: torch.Tensor,
+    ) -> Tuple[int, int, int]:
         """
         Computes the precision, recall and F1-score for span detection.
         """
@@ -107,16 +129,18 @@ class SpanEvaluator(object):
         num_label_spans = 0
 
         for predict_start_ids, predict_end_ids, label_start_ids, label_end_ids in zip(
-                pred_start_ids, pred_end_ids, gold_start_ids, gold_end_ids):
-            _correct, _infer, _label = self.eval_span(predict_start_ids, predict_end_ids,
-                                                      label_start_ids, label_end_ids)
+            pred_start_ids, pred_end_ids, gold_start_ids, gold_end_ids
+        ):
+            _correct, _infer, _label = self.eval_span(
+                predict_start_ids, predict_end_ids, label_start_ids, label_end_ids
+            )
             num_correct_spans += _correct
             num_infer_spans += _infer
             num_label_spans += _label
 
         return num_correct_spans, num_infer_spans, num_label_spans
 
-    def update(self, num_correct_spans, num_infer_spans, num_label_spans):
+    def update(self, num_correct_spans: int, num_infer_spans: int, num_label_spans: int):
         """
         This function takes (num_infer_spans, num_label_spans, num_correct_spans) as input,
         to accumulate and update the corresponding status of the SpanEvaluator object.
@@ -125,7 +149,13 @@ class SpanEvaluator(object):
         self.num_label_spans += num_label_spans
         self.num_correct_spans += num_correct_spans
 
-    def eval_span(self, predict_start_ids, predict_end_ids, label_start_ids, label_end_ids):
+    def eval_span(
+        self,
+        predict_start_ids: List[int],
+        predict_end_ids: List[int],
+        label_start_ids: List[int],
+        label_end_ids: List[int],
+    ) -> Tuple[int, int, int]:
         """
         evaluate position extraction (start, end)
         return num_correct, num_infer, num_label
@@ -139,7 +169,7 @@ class SpanEvaluator(object):
         num_label = len(label_set)
         return num_correct, num_infer, num_label
 
-    def value(self):
+    def value(self) -> Dict[Literal["precision", "recall", "f1"], float]:
         """
         This function returns the mean precision, recall and f1 score for all accumulated minibatches.
         Returns:
@@ -158,8 +188,8 @@ class SpanEvaluator(object):
         self.num_label_spans = 0
         self.num_correct_spans = 0
 
-    def name(self):
+    def name(self) -> str:
         """
         Return name of metric instance.
         """
-        return "precision", "recall", "f1"
+        return "precision, recall, f1"

@@ -1,17 +1,34 @@
+import logging
 import math
+import os
+import queue
 import re
+from multiprocessing import Queue
 from typing import (
     List,
+    Tuple,
     Union,
+    Dict,
     Any,
+    Set,
+    TYPE_CHECKING,
     Optional,
+    Literal,
 )
 
 import numpy as np
 import torch
+import torch.multiprocessing as mp
 import torch.nn as nn
 from tqdm import tqdm
-from transformers import PreTrainedTokenizer
+from transformers import is_torch_npu_available
+
+if TYPE_CHECKING:
+    from transformers import PreTrainedTokenizer
+
+
+os.environ["PYTHONWARNINGS"] = "ignore"
+logger = logging.getLogger("FASTIE")
 
 
 def get_id_and_prob(spans, offset_map):
@@ -35,7 +52,11 @@ def get_id_and_prob(spans, offset_map):
     return sentence_id, prob
 
 
-def get_span(start_ids, end_ids, with_prob=False):
+def get_span(
+    start_ids: Union[List[int], List[Tuple[int, float]]],
+    end_ids: Union[List[int], List[Tuple[int, float]]],
+    with_prob: bool = False
+) -> Set[Tuple[int, int]]:
     """
     Get span set from position start and end list.
     Args:
@@ -87,7 +108,9 @@ def get_span(start_ids, end_ids, with_prob=False):
     return result
 
 
-def get_bool_ids_greater_than(probs, limit=0.5, return_prob=False):
+def get_bool_ids_greater_than(
+    probs: List[List[float]], limit: float = 0.5, return_prob: bool = False
+) -> List[List[int]]:
     """
     Get idx of the last dimension in probability arrays, which is greater than a limitation.
     Args:
@@ -115,7 +138,7 @@ def get_bool_ids_greater_than(probs, limit=0.5, return_prob=False):
         return result
 
 
-def dbc2sbc(s):
+def dbc2sbc(s) -> str:
     rs = ""
     for char in s:
         code = ord(char)
@@ -130,7 +153,7 @@ def dbc2sbc(s):
     return rs
 
 
-def cut_chinese_sent(para):
+def cut_chinese_sent(para: str) -> List[str]:
     """
     Cut the Chinese sentences more precisely, reference to
     "https://blog.csdn.net/blmoistawinde/article/details/82379256".
@@ -143,45 +166,6 @@ def cut_chinese_sent(para):
     return para.split("\n")
 
 
-def auto_splitter(input_texts, max_text_len, split_sentence=False):
-    """
-    Split the raw texts automatically for model inference.
-    Args:
-        input_texts (List[str]): input raw texts.
-        max_text_len (int): cutting length.
-        split_sentence (bool): If True, sentence-level split will be performed.
-    return:
-        short_input_texts (List[str]): the short input texts for model inference.
-        input_mapping (dict): mapping between raw text and short input texts.
-    """
-    input_mapping = {}
-    short_input_texts = []
-    cnt_short = 0
-    for cnt_org, text in enumerate(input_texts):
-        sens = cut_chinese_sent(text) if split_sentence else [text]
-        for sen in sens:
-            lens = len(sen)
-            if lens <= max_text_len:
-                short_input_texts.append(sen)
-                if cnt_org in input_mapping:
-                    input_mapping[cnt_org].append(cnt_short)
-                else:
-                    input_mapping[cnt_org] = [cnt_short]
-                cnt_short += 1
-            else:
-                temp_text_list = [sen[i: i + max_text_len] for i in range(0, lens, max_text_len)]
-
-                short_input_texts.extend(temp_text_list)
-                short_idx = cnt_short
-                cnt_short += math.ceil(lens / max_text_len)
-                temp_text_id = [short_idx + i for i in range(cnt_short - short_idx)]
-                if cnt_org in input_mapping:
-                    input_mapping[cnt_org].extend(temp_text_id)
-                else:
-                    input_mapping[cnt_org] = temp_text_id
-    return short_input_texts, input_mapping
-
-
 class UIEDecoder(nn.Module):
 
     keys_to_ignore_on_gpu = ["offset_mapping", "texts"]
@@ -189,27 +173,37 @@ class UIEDecoder(nn.Module):
     @torch.inference_mode()
     def predict(
         self,
-        tokenizer: PreTrainedTokenizer,
+        tokenizer: "PreTrainedTokenizer",
         texts: Union[List[str], str],
         schema: Optional[Any] = None,
         batch_size: int = 64,
         max_length: int = 512,
         split_sentence: bool = False,
         position_prob: float = 0.5,
-        is_english: bool = False,
-        disable_tqdm: bool = True,
+        language: Optional[str] = "zh",
+        show_progress_bar: bool = None,
+        device: Optional[str] = None,
     ) -> List[Any]:
         self.eval()
-        self.tokenizer = tokenizer
-        self.is_english = is_english
+        self.is_english = False if language.lower() in ["zh", "zh-cn", "chinese"] else True
         if schema is not None:
             self.set_schema(schema)
 
-        texts = texts
-        if isinstance(texts, str):
+        if show_progress_bar is None:
+            show_progress_bar = (
+                logger.getEffectiveLevel() == logging.INFO or logger.getEffectiveLevel() == logging.DEBUG
+            )
+        # Cast an individual text to a list with length 1
+        if isinstance(texts, str) or not hasattr(texts, "__len__"):
             texts = [texts]
+
+        if device is None:
+            device = next(self.parameters()).device
+
+        self.to(device)
+
         return self._multi_stage_predict(
-            texts, batch_size, max_length, split_sentence, position_prob, disable_tqdm
+            tokenizer, texts, batch_size, max_length, split_sentence, position_prob, show_progress_bar
         )
 
     def set_schema(self, schema):
@@ -219,12 +213,13 @@ class UIEDecoder(nn.Module):
 
     def _multi_stage_predict(
         self,
+        tokenizer: "PreTrainedTokenizer",
         texts: List[str],
         batch_size: int = 64,
         max_length: int = 512,
         split_sentence: bool = False,
         position_prob: float = 0.5,
-        disable_tqdm: bool = True,
+        show_progress_bar: bool = False,
     ) -> List[Any]:
         """ Traversal the schema tree and do multi-stage prediction. """
         results = [{} for _ in range(len(texts))]
@@ -271,7 +266,7 @@ class UIEDecoder(nn.Module):
                     cnt += 1
 
             result_list = self._single_stage_predict(
-                examples, batch_size, max_length, split_sentence, position_prob, disable_tqdm
+                tokenizer, examples, batch_size, max_length, split_sentence, position_prob, show_progress_bar
             ) if examples else []
             if not node.parent_relations:
                 relations = [[] for _ in range(len(texts))]
@@ -387,13 +382,14 @@ class UIEDecoder(nn.Module):
 
     def _single_stage_predict(
         self,
+        tokenizer: "PreTrainedTokenizer",
         inputs: List[dict],
         batch_size: int = 64,
         max_length: int = 512,
         split_sentence: bool = False,
         position_prob: float = 0.5,
-        disable_tqdm: bool = True,
-    ):
+        show_progress_bar: bool = False,
+    ) -> List[Any]:
         input_texts = []
         prompts = []
         for i in range(len(inputs)):
@@ -417,7 +413,7 @@ class UIEDecoder(nn.Module):
             for i in range(len(short_input_texts))
         ]
 
-        encoded_inputs = self.tokenizer(
+        encoded_inputs = tokenizer(
             text=short_texts_prompts,
             text_pair=short_input_texts,
             stride=2,
@@ -431,10 +427,8 @@ class UIEDecoder(nn.Module):
         offset_maps = encoded_inputs["offset_mapping"]
 
         start_prob_concat, end_prob_concat = [], []
-        if disable_tqdm:
-            batch_iterator = range(0, len(short_input_texts), batch_size)
-        else:
-            batch_iterator = tqdm(range(0, len(short_input_texts), batch_size), desc="Predicting", unit="batch")
+
+        batch_iterator = tqdm(range(0, len(short_input_texts), batch_size), desc="Batches", disable=not show_progress_bar)
         for batch_start in batch_iterator:
             batch = {
                 key:
@@ -458,7 +452,7 @@ class UIEDecoder(nn.Module):
         start_ids_list = get_bool_ids_greater_than(start_prob_concat, limit=position_prob, return_prob=True)
         end_ids_list = get_bool_ids_greater_than(end_prob_concat, limit=position_prob, return_prob=True)
 
-        input_ids = encoded_inputs['input_ids'].tolist()
+        input_ids = encoded_inputs["input_ids"].tolist()
         sentence_ids, probs = [], []
         for start_ids, end_ids, ids, offset_map in zip(start_ids_list, end_ids_list, input_ids, offset_maps):
             span_list = get_span(start_ids, end_ids, with_prob=True)
@@ -513,7 +507,7 @@ class UIEDecoder(nn.Module):
                         offset += len(short_inputs[v])
                     else:
                         for i in range(len(short_results[v])):
-                            if 'start' not in short_results[v][i] or 'end' not in short_results[v][i]:
+                            if "start" not in short_results[v][i] or 'end' not in short_results[v][i]:
                                 continue
                             short_results[v][i]["start"] += offset
                             short_results[v][i]["end"] += offset
@@ -523,7 +517,7 @@ class UIEDecoder(nn.Module):
         return concat_results
 
     @classmethod
-    def _build_tree(cls, schema, name='root'):
+    def _build_tree(cls, schema, name="root"):
         """
         Build the schema tree.
         """
@@ -546,6 +540,136 @@ class UIEDecoder(nn.Module):
                 raise TypeError(f"Invalid schema, element should be string or dict, but {type(s)} received")
 
         return schema_tree
+
+    def start_multi_process_pool(self, target_devices: List[str] = None) -> Dict[Literal["input", "output", "processes"], Any]:
+        """启动多进程池，用多个独立进程进行预测
+        如果要在多个GPU或CPU上进行预测，建议使用此方法，建议每个GPU只启动一个进程
+
+        Args:
+            target_devices (List[str], optional): PyTorch target devices, e.g. ["cuda:0", "cuda:1", ...],
+                ["npu:0", "npu:1", ...], or ["cpu", "cpu", "cpu", "cpu"]. If target_devices is None and CUDA/NPU
+                is available, then all available CUDA/NPU devices will be used. If target_devices is None and
+                CUDA/NPU is not available, then 4 CPU devices will be used.
+
+        Returns:
+            Dict[str, Any]: A dictionary with the target processes, an input queue, and an output queue.
+        """
+        if target_devices is None:
+            if torch.cuda.is_available():
+                target_devices = ["cuda:{}".format(i) for i in range(torch.cuda.device_count())]
+            elif is_torch_npu_available():
+                target_devices = ["npu:{}".format(i) for i in range(torch.npu.device_count())]
+            else:
+                logger.info("CUDA/NPU is not available. Starting 4 CPU workers")
+                target_devices = ["cpu"] * 4
+
+        logger.info("Start multi-process pool on devices: {}".format(", ".join(map(str, target_devices))))
+
+        self.to("cpu")
+        self.share_memory()
+        ctx = mp.get_context("spawn")
+        input_queue = ctx.Queue()
+        output_queue = ctx.Queue()
+        processes = []
+
+        for device_id in target_devices:
+            p = ctx.Process(
+                target=UIEDecoder._predict_multi_process_worker,
+                args=(device_id, self, input_queue, output_queue),
+                daemon=True,
+            )
+            p.start()
+            processes.append(p)
+
+        return {"input": input_queue, "output": output_queue, "processes": processes}
+
+    @staticmethod
+    def stop_multi_process_pool(pool: Dict[Literal["input", "output", "processes"], Any]) -> None:
+        """
+        Stops all processes started with start_multi_process_pool.
+
+        Args:
+            pool (Dict[str, object]): A dictionary containing the input queue, output queue, and process list.
+
+        Returns:
+            None
+        """
+        for p in pool["processes"]:
+            p.terminate()
+
+        for p in pool["processes"]:
+            p.join()
+            p.close()
+
+        pool["input"].close()
+        pool["output"].close()
+
+    def predict_multi_process(
+        self,
+        tokenizer: "PreTrainedTokenizer",
+        texts: List[str],
+        pool: Dict[Literal["input", "output", "processes"], Any],
+        batch_size: int = 64,
+        max_length: int = 512,
+        split_sentence: bool = False,
+        language: Optional[str] = "zh",
+        position_prob: float = 0.5,
+        chunk_size: Optional[int] = None,
+    ) -> List[Any]:
+        if chunk_size is None:
+            chunk_size = min(math.ceil(len(texts) / len(pool["processes"]) / 10), 5000)
+
+        logger.debug(f"Chunk data into {math.ceil(len(texts) / chunk_size)} packages of size {chunk_size}")
+
+        input_queue = pool["input"]
+        last_chunk_id = 0
+        chunk = []
+
+        for text in texts:
+            chunk.append(text)
+            if len(chunk) >= chunk_size:
+                input_queue.put(
+                    [last_chunk_id, tokenizer, batch_size, chunk, max_length, split_sentence, language, position_prob]
+                )
+                last_chunk_id += 1
+                chunk = []
+
+        if len(chunk) > 0:
+            input_queue.put(
+                [last_chunk_id, tokenizer, batch_size, chunk, max_length, split_sentence, language, position_prob]
+            )
+            last_chunk_id += 1
+
+        output_queue = pool["output"]
+        results_list = sorted([output_queue.get() for _ in range(last_chunk_id)], key=lambda x: x[0])
+        return sum([result[1] for result in results_list], [])
+
+    @staticmethod
+    def _predict_multi_process_worker(
+        target_device: str, model: "UIEDecoder", input_queue: Queue, results_queue: Queue
+    ) -> None:
+        """
+        Internal working process to predict in multi-process setup
+        """
+        while True:
+            try:
+                chunk_id, tokenizer, batch_size, chunk, max_length, split_sentence, language, position_prob = (
+                    input_queue.get()
+                )
+                results = model.predict(
+                    tokenizer,
+                    chunk,
+                    batch_size=batch_size,
+                    max_length=max_length,
+                    split_sentence=split_sentence,
+                    language=language,
+                    show_progress_bar=False,
+                    device=target_device,
+                )
+
+                results_queue.put([chunk_id, results])
+            except queue.Empty:
+                break
 
 
 class SchemaTree(object):

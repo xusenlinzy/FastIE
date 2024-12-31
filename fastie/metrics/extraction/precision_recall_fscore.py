@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple, Set
 
 
 class DedupList(list):
@@ -8,19 +8,17 @@ class DedupList(list):
             super(DedupList, self).append(x)
 
 
-def _precision_recall_fscore(pred_sum, tp_sum, true_sum):
+def _precision_recall_fscore(pred_sum: int, tp_sum: int, true_sum: int) -> Tuple[float, float, float]:
     recall = tp_sum / true_sum if true_sum > 0 else 0.0
     precision = tp_sum / pred_sum if pred_sum > 0 else 0.0
-
-    if recall + precision == 0.0:
-        f_score = 0.0
-    else:
-        f_score = 2 * recall * precision / (recall + precision)
-
+    f_score = 0.0 if (recall + precision) == 0.0 else 2 * recall * precision / (recall + precision)
     return precision, recall, f_score
 
 
-def extract_tp_actual_correct(y_true: List[set], y_pred: List[set]):
+def extract_tp_actual_correct(
+    y_true: List[Set[Tuple[str, int, int, str]]],
+    y_pred: List[Set[Tuple[str, int, int, str]]]
+) -> Tuple[int, int, int]:
     entities_true = set()
     entities_pred = set()
     for i, (y_t, y_p) in enumerate(zip(y_true, y_pred)):
@@ -35,7 +33,10 @@ def extract_tp_actual_correct(y_true: List[set], y_pred: List[set]):
     return pred_sum, tp_sum, true_sum
 
 
-def extract_tp_actual_correct_for_event(y_true, y_pred):
+def extract_tp_actual_correct_for_event(
+    y_true: List[List[List[Tuple[str, str, str, int, int]]]],
+    y_pred: List[List[List[Tuple[str, str, str, int, int]]]],
+) -> Tuple[int, int, int, int, int, int]:
     ex, ey, ez = 0, 0, 0  # 事件级别
     ax, ay, az = 0, 0, 0  # 论元级别
 
